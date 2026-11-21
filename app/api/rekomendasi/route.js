@@ -1,5 +1,5 @@
-import { RECIPES, SLOTS, getRecipe } from '@/lib/data';
 import { allowedRecipes, recommendDaily, ideasFromStock, nutrisiDari } from '@/lib/recommend';
+import { jalankanAI } from '@/lib/aiPipeline';
 
 export const runtime = 'nodejs';
 
@@ -90,7 +90,7 @@ async function panggilAI(prompt) {
 
     for (const model of models) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
         const r = await fetch(url, {
           method: 'POST',
           headers: {
@@ -125,7 +125,7 @@ async function panggilAI(prompt) {
 
   // Coba Anthropic jika ada
   if (process.env.ANTHROPIC_API_KEY) {
-    const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-20241022';
+    const model = process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5';
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -153,12 +153,10 @@ async function panggilAI(prompt) {
   throw new Error('API key belum valid atau tidak dapat terhubung');
 }
 
-function parseJson(teks) {
-  const potong = teks.replace(/```json|```/g, '').trim();
-  const mulai = potong.indexOf('{');
-  const akhir = potong.lastIndexOf('}');
-  if (mulai === -1 || akhir === -1) throw new Error('Format JSON tidak ditemukan');
-  return JSON.parse(potong.slice(mulai, akhir + 1));
+// Gizi & biaya dihitung sistem dari data resep, bukan dari keluaran AI.
+function ringkasan(ids) {
+  const n = nutrisiDari(ids);
+  return { biaya: n.biaya, protein: n.protein, karbo: n.karbo, sayur: n.sayur, kalori: n.kalori };
 }
 
 function hasilAturan(mode, profil) {
@@ -167,6 +165,7 @@ function hasilAturan(mode, profil) {
     return {
       ids: ide.map((x) => x.recipe.id),
       alasan: `Dipilih berdasarkan ${profil.stok.length} bahan stok yang kamu punya di kos agar menghemat belanja dan tidak mubazir.`,
+      ringkasan: ringkasan(ide.map((x) => x.recipe.id)),
       sumber: 'aturan',
     };
   }
@@ -174,6 +173,7 @@ function hasilAturan(mode, profil) {
   const n = nutrisiDari(plan);
   return {
     ids: plan,
+    ringkasan: ringkasan(plan),
     alasan: `Paket menu seimbang ini disusun pas dengan target bujetmu (${profil.budget ? 'Rp' + profil.budget.toLocaleString('id-ID') : 'Rp30.000'}/hari) serta memaksimalkan asupan protein (${n.protein}g) dan serat (${n.serat}g) untuk stamina kuliah harianmu.`,
     sumber: 'aturan',
   };
@@ -200,8 +200,11 @@ export async function POST(req) {
 
   // 1. Mode Chat Interaktif dengan AI
   if (mode === 'chat') {
-    const pesan = String(body.pesan || '').trim();
-    const riwayat = Array.isArray(body.riwayat) ? body.riwayat.slice(-10) : [];
+    const pesan = String(body.pesan || '').trim().slice(0, 500);
+    const riwayat = (Array.isArray(body.riwayat) ? body.riwayat.slice(-10) : []).map((m) => ({
+      dari: m?.dari === 'user' ? 'user' : 'ai',
+      teks: String(m?.teks || '').slice(0, 500),
+    }));
     if (!pesan) return Response.json({ balasan: 'Hei, mau tanya apa nih? Soal menu, bujet, atau resep?' });
 
     try {
@@ -232,35 +235,16 @@ export async function POST(req) {
   }
 
   // 2. Mode Rekomendasi Menu & Bahan Sisa
+  // Alur: prompt -> AI -> validasi -> (coba ulang sekali) -> cadangan berbasis aturan. Gizi & biaya dihitung sistem.
   const kandidat = allowedRecipes(profil);
+  if (kandidat.length === 0) return Response.json(hasilAturan(mode, profil));
 
-  try {
-    if (kandidat.length === 0) return Response.json(hasilAturan(mode, profil));
-    const teks = await panggilAI(bangunPrompt(mode, profil, kandidat));
-    const j = parseJson(teks);
-    const ids = Array.isArray(j.ids)
-      ? [...new Set(j.ids)].filter((id) => kandidat.some((r) => r.id === id))
-      : [];
-
-    if (mode === 'menu') {
-      const urut = SLOTS.map((s) => ids.map(getRecipe).find((r) => r && r.slot === s)).filter(Boolean);
-      if (urut.length !== 3 || nutrisiDari(urut.map((r) => r.id)).biaya > profil.budget) {
-        throw new Error('Hasil AI melebihi bujet atau slot tidak lengkap');
-      }
-      return Response.json({
-        ids: urut.map((r) => r.id),
-        alasan: String(j.alasan || '').slice(0, 400),
-        sumber: 'ai',
-      });
-    }
-
-    if (ids.length === 0) throw new Error('Hasil AI kosong');
-    return Response.json({
-      ids: ids.slice(0, 3),
-      alasan: String(j.alasan || '').slice(0, 400),
-      sumber: 'ai',
-    });
-  } catch (e) {
-    return Response.json(hasilAturan(mode, profil));
-  }
+  const hasil = await jalankanAI({
+    mode: mode === 'bahan' ? 'bahan' : 'menu',
+    profil,
+    prompt: bangunPrompt(mode, profil, kandidat),
+    panggil: panggilAI,
+  });
+  if (!hasil) return Response.json(hasilAturan(mode, profil));
+  return Response.json({ ...hasil, ringkasan: ringkasan(hasil.ids) });
 }

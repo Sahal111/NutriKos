@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/components/AppProvider';
 import RecipeCard from '@/components/RecipeCard';
+import FavoritRiwayat from '@/components/FavoritRiwayat';
 import { allowedRecipes, recommendWeekly, nutrisiDari } from '@/lib/recommend';
 import { mintaAI } from '@/lib/ai';
 import { getRecipe, rupiah, SLOTS, SLOT_LABEL, RECIPES } from '@/lib/data';
@@ -38,6 +39,7 @@ export default function MenuPage() {
     setRecipePortion,
     customPlanDetails,
     logToday,
+    catatRiwayat,
     ai,
     setAi,
     triggerAiModal,
@@ -103,6 +105,7 @@ export default function MenuPage() {
     const hasil = await mintaAI('menu', profile);
     if (hasil && hasil.ids?.length) {
       setPlan(hasil.ids);
+      catatRiwayat(hasil.ids);
       setAi({ alasan: hasil.alasan, sumber: hasil.sumber });
       setModalAIOpen(true);
       showToast('✨ Rekomendasi AI berhasil dibuat!');
@@ -432,6 +435,9 @@ export default function MenuPage() {
           </button>
         </div>
       )}
+
+      {/* Favorit & riwayat menu (F6) */}
+      <FavoritRiwayat />
 
       {/* Floating Bottom Bar / Static Desktop Action */}
       {mode === 'Harian' && plan.length > 0 && (

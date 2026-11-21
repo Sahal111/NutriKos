@@ -1,6 +1,8 @@
+'use client';
 import Link from 'next/link';
-import { Clock, Edit3, Trash2 } from 'lucide-react';
+import { Clock, Edit3, Trash2, Heart } from 'lucide-react';
 import { rupiah, SLOT_LABEL } from '@/lib/data';
+import { useApp } from './AppProvider';
 
 export default function RecipeCard({
   recipe,
@@ -12,6 +14,8 @@ export default function RecipeCard({
   onDelete,
   porsi = 1,
 }) {
+  const { favorit, toggleFavorit } = useApp();
+  const disukai = favorit.some((f) => f.resepId === recipe.id);
   const hargaTotal = Math.round(recipe.harga * porsi);
   const proteinTotal = Math.round(recipe.protein * porsi);
   const kaloriTotal = Math.round(recipe.kalori * porsi);
@@ -87,6 +91,16 @@ export default function RecipeCard({
             {aksiLabel}
           </Link>
         )}
+
+        <button
+          onClick={() => toggleFavorit(recipe.id)}
+          title={disukai ? 'Hapus dari favorit' : 'Simpan ke favorit'}
+          aria-label={disukai ? 'Hapus dari favorit' : 'Simpan ke favorit'}
+          aria-pressed={disukai}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors ${disukai ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+        >
+          <Heart size={16} fill={disukai ? 'currentColor' : 'none'} />
+        </button>
 
         {onEdit && (
           <button

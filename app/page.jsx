@@ -5,13 +5,14 @@ import { useState } from 'react';
 import { Sparkles, Refrigerator, X, Plus, GraduationCap, Dices } from 'lucide-react';
 import { useApp } from '@/components/AppProvider';
 import RecipeCard from '@/components/RecipeCard';
-import { getRecipe, rupiah, TARGET_HARIAN } from '@/lib/data';
+import { getRecipe, rupiah } from '@/lib/data';
 import { nutrisiDari, allowedRecipes } from '@/lib/recommend';
 import { mintaAI } from '@/lib/ai';
+import { targetHarian, hitungSkor } from '@/lib/gizi';
 
 export default function Beranda() {
   const router = useRouter();
-  const { profile, plan, setPlan, generatePlan, setProfile, setAi, customPlanDetails, setTriggerAiModal, ready } = useApp();
+  const { profile, plan, setPlan, generatePlan, setProfile, setAi, catatRiwayat, customPlanDetails, setTriggerAiModal, ready } = useApp();
   const [bahanBaru, setBahanBaru] = useState('');
   const [loading, setLoading] = useState(false);
   if (!ready) return null;
@@ -20,7 +21,8 @@ export default function Beranda() {
   const n = nutrisiDari(plan, customPlanDetails);
   const sisa = profile.budget - n.biaya;
   const persenTerpakai = Math.min(100, Math.round((n.biaya / profile.budget) * 100));
-  const skor = Math.round(((Math.min(1, n.protein / TARGET_HARIAN.protein) + Math.min(1, n.serat / TARGET_HARIAN.serat) + Math.min(1, n.karbo / TARGET_HARIAN.karbo)) / 3) * 100);
+  const target = targetHarian(profile.jenisKelamin);
+  const skor = hitungSkor(n, target);
   const nama = profile.nama.split(' ')[0];
 
   const tambahBahan = () => {
@@ -32,7 +34,7 @@ export default function Beranda() {
   const rekomendasi = async () => {
     setLoading(true);
     const hasil = await mintaAI('menu', profile);
-    if (hasil && hasil.ids?.length) { setPlan(hasil.ids); setAi({ alasan: hasil.alasan, sumber: hasil.sumber }); }
+    if (hasil && hasil.ids?.length) { setPlan(hasil.ids); catatRiwayat(hasil.ids); setAi({ alasan: hasil.alasan, sumber: hasil.sumber }); }
     else { generatePlan(); setAi({ alasan: 'Dipilih berdasarkan bujet, alat masak, dan pantanganmu (mode aturan).', sumber: 'aturan' }); }
     setLoading(false);
     setTriggerAiModal?.(true);
@@ -112,8 +114,8 @@ export default function Beranda() {
 
       {/* Skor Gizi */}
       <section className="card">
-        <div className="text-lg font-extrabold lg:text-xl">Skor Gizi Hari Ini: {skor}/100</div>
-        <p className="mt-1 text-sm text-slate-600">Protein {n.protein}g • Serat {n.serat}g • Karbo {n.karbo}g (target harian {TARGET_HARIAN.protein}/{TARGET_HARIAN.serat}/{TARGET_HARIAN.karbo}g). <Link href="/gizi" className="font-bold text-brand-dark underline">Lihat detail</Link></p>
+        <div className="text-lg font-extrabold lg:text-xl">Skor Gizi Menu Hari Ini: {skor.total}/100 <span className="text-sm font-bold text-slate-500">({skor.kategori})</span></div>
+        <p className="mt-1 text-sm text-slate-600">Protein {n.protein}g • Karbo {n.karbo}g • Sayur & buah {n.sayur} porsi (target harian {target.protein}g / {target.karbo}g / {target.sayur} porsi). <Link href="/gizi" className="font-bold text-brand-dark underline">Lihat skor mingguan</Link></p>
       </section>
 
       {/* Ide Masak Acak */}

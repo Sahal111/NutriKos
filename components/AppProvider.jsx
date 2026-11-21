@@ -2,12 +2,21 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { DEFAULT_PROFILE } from '@/lib/data';
 import { recommendDaily, buildShopping } from '@/lib/recommend';
+import { kunciTanggal } from '@/lib/gizi';
 
 const KEY = 'nutrikos-v2';
 const LEGACY_KEY = 'nutrikos-v1';
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
-export const hariIni = () => new Date().toISOString().slice(0, 10);
+// Tanggal lokal perangkat (bukan UTC), agar pukul 00.00-07.00 WIB tidak terbaca sebagai kemarin.
+export const hariIni = () => kunciTanggal();
+
+// Riwayat menu: { resepId, tanggal }. Satu resep dicatat sekali per tanggal; maksimal 200 entri terakhir.
+const tambahRiwayat = (riwayat = [], ids = []) => {
+  const tanggal = hariIni();
+  const baru = ids.filter((id) => !riwayat.some((x) => x.resepId === id && x.tanggal === tanggal)).map((resepId) => ({ resepId, tanggal }));
+  return [...riwayat, ...baru].slice(-200);
+};
 
 const initial = () => ({
   profile: DEFAULT_PROFILE,
@@ -20,6 +29,8 @@ const initial = () => ({
   shoppingOverrides: {},
   deletedShoppingItems: [],
   customPlanDetails: {},
+  favorit: [],
+  riwayat: [],
 });
 
 export default function AppProvider({ children }) {
@@ -44,6 +55,8 @@ export default function AppProvider({ children }) {
           shoppingOverrides: saved.shoppingOverrides || {},
           deletedShoppingItems: saved.deletedShoppingItems || [],
           customPlanDetails: saved.customPlanDetails || {},
+          favorit: saved.favorit || [],
+          riwayat: saved.riwayat || [],
         });
       } else {
         setState((s) => ({ ...s, plan: recommendDaily(s.profile) }));
@@ -72,14 +85,27 @@ export default function AppProvider({ children }) {
   // Plan & Recipes
   const setPlan = useCallback((plan) => setState((s) => ({ ...s, plan })), []);
   const generatePlan = useCallback(() => {
-    setState((s) => ({
-      ...s,
-      plan: recommendDaily(s.profile),
-      // reset overrides jika buat plan baru
-      deletedShoppingItems: [],
-      customPlanDetails: {},
-    }));
+    setState((s) => {
+      const plan = recommendDaily(s.profile);
+      return {
+        ...s,
+        plan,
+        riwayat: tambahRiwayat(s.riwayat, plan),
+        // reset overrides jika buat plan baru
+        deletedShoppingItems: [],
+        customPlanDetails: {},
+      };
+    });
   }, []);
+
+  // Favorit & riwayat menu (F6). Tersimpan di perangkat; dipindah ke tabel favorit/riwayat_menu saat basis data terhubung.
+  const toggleFavorit = useCallback((resepId) => {
+    setState((s) => {
+      const ada = s.favorit.some((f) => f.resepId === resepId);
+      return { ...s, favorit: ada ? s.favorit.filter((f) => f.resepId !== resepId) : [...s.favorit, { resepId, tanggal: hariIni() }] };
+    });
+  }, []);
+  const catatRiwayat = useCallback((ids) => setState((s) => ({ ...s, riwayat: tambahRiwayat(s.riwayat, ids) })), []);
 
   const addExtra = useCallback((id) => setState((s) => (s.extra.includes(id) ? s : { ...s, extra: [...s.extra, id] })), []);
 
@@ -286,7 +312,12 @@ export default function AppProvider({ children }) {
   }, []);
 
   const setAi = useCallback((ai) => setState((s) => ({ ...s, ai })), []);
-  const logToday = useCallback(() => setState((s) => ({ ...s, log: { ...s.log, [hariIni()]: s.plan } })), []);
+  // Catatan makan menyimpan id menu beserta porsinya saat dicatat, agar skor mingguan tidak berubah bila menu diedit kemudian.
+  const logToday = useCallback(() => setState((s) => {
+    const porsi = {};
+    s.plan.forEach((id) => { porsi[id] = s.customPlanDetails[id]?.porsi || 1; });
+    return { ...s, log: { ...s.log, [hariIni()]: { ids: s.plan, porsi } } };
+  }), []);
   const reset = useCallback(() => {
     const p = DEFAULT_PROFILE;
     setState({
@@ -300,6 +331,8 @@ export default function AppProvider({ children }) {
       shoppingOverrides: {},
       deletedShoppingItems: [],
       customPlanDetails: {},
+      favorit: [],
+      riwayat: [],
     });
   }, []);
 
@@ -329,6 +362,8 @@ export default function AppProvider({ children }) {
         markAllShoppingBought,
         unmarkAllShoppingBought,
         logToday,
+        toggleFavorit,
+        catatRiwayat,
         reset,
         setAi,
         triggerAiModal,

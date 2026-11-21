@@ -1,9 +1,10 @@
 'use client';
 import { useParams, useRouter } from 'next/navigation';
-import { Clock, Flame, ChevronLeft, ShoppingCart, Check } from 'lucide-react';
+import { Clock, Flame, ChevronLeft, ShoppingCart, Check, Heart } from 'lucide-react';
 import { useApp } from '@/components/AppProvider';
 import { getRecipe, rupiah, SLOTS } from '@/lib/data';
 import { adaDiStok } from '@/lib/recommend';
+import { targetHarian } from '@/lib/gizi';
 
 function Bar({ label, nilai, target, warna }) {
   return (
@@ -17,7 +18,7 @@ function Bar({ label, nilai, target, warna }) {
 export default function DetailResep() {
   const { id } = useParams();
   const router = useRouter();
-  const { profile, plan, setPlan, addExtra, ready } = useApp();
+  const { profile, plan, setPlan, addExtra, favorit, toggleFavorit, ready } = useApp();
   const r = getRecipe(id);
   if (!ready) return null;
   if (!r) return <div className="card">Resep tidak ditemukan.</div>;
@@ -27,6 +28,8 @@ export default function DetailResep() {
     router.push('/menu');
   };
   const tambahBelanja = () => { addExtra(r.id); router.push('/belanja'); };
+  const disukai = favorit.some((f) => f.resepId === r.id);
+  const t = targetHarian(profile.jenisKelamin);
   const biayaBeli = r.bahan.filter((x) => !adaDiStok(profile, x.kunci)).reduce((s, x) => s + x.harga, 0);
 
   return (
@@ -44,7 +47,10 @@ export default function DetailResep() {
 
         {/* Info section */}
         <div className="mt-4 flex-1 space-y-4 lg:mt-0">
-          <h1 className="text-2xl font-extrabold sm:text-3xl">{r.nama}</h1>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-2xl font-extrabold sm:text-3xl">{r.nama}</h1>
+            <button onClick={() => toggleFavorit(r.id)} aria-pressed={disukai} aria-label={disukai ? 'Hapus dari favorit' : 'Simpan ke favorit'} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${disukai ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}><Heart size={18} fill={disukai ? 'currentColor' : 'none'} /></button>
+          </div>
           <div className="grid grid-cols-3 gap-2 text-center text-sm">
             <div className="card !p-3"><Clock className="mx-auto text-brand-dark" size={20} /><div className="text-xs text-slate-500">Waktu</div><b>{r.waktu} Menit</b></div>
             <div className="card !p-3"><div className="text-xl">🧑‍🍳</div><div className="text-xs text-slate-500">Alat</div><b>{r.alat.length ? r.alat[0] : 'Tanpa alat'}</b></div>
@@ -54,9 +60,10 @@ export default function DetailResep() {
           {/* Nutrisi */}
           <section className="card space-y-3">
             <h2 className="font-extrabold">Rincian Gizi (estimasi)</h2>
-            <Bar label="Protein" nilai={r.protein} target={25} warna="bg-brand-dark" />
-            <Bar label="Serat" nilai={r.serat} target={10} warna="bg-accent" />
-            <Bar label="Karbohidrat" nilai={r.karbo} target={60} warna="bg-slate-500" />
+            <p className="text-xs text-slate-500">Dibandingkan dengan sepertiga target gizi harian (AKG 2019) untuk satu waktu makan.</p>
+            <Bar label="Protein" nilai={r.protein} target={Math.round(t.protein / 3)} warna="bg-brand-dark" />
+            <Bar label="Serat" nilai={r.serat} target={Math.round(t.serat / 3)} warna="bg-accent" />
+            <Bar label="Karbohidrat" nilai={r.karbo} target={Math.round(t.karbo / 3)} warna="bg-slate-500" />
           </section>
         </div>
       </div>

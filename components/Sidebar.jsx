@@ -20,7 +20,7 @@ export default function Sidebar() {
 
   const shoppingItems = getShoppingItems ? getShoppingItems() : [];
   const perluDibeli = shoppingItems.filter((x) => !x.sudahAda && !checked[x.nama]).length;
-  const aktif = (h) => (h === '/' ? path === '/' : path.startsWith(h));
+  const aktif = (h) => (h === '/' ? path === '/' : path === h || path.startsWith(h + '/'));
 
   const navContent = (
     <>

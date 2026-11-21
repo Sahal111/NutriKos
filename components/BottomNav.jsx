@@ -17,7 +17,7 @@ export default function BottomNav() {
   const { getShoppingItems, checked } = useApp();
   const items = getShoppingItems ? getShoppingItems() : [];
   const perluDibeli = items.filter((x) => !x.sudahAda && !checked[x.nama]).length;
-  const aktif = (h) => (h === '/' ? path === '/' : path.startsWith(h));
+  const aktif = (h) => (h === '/' ? path === '/' : path === h || path.startsWith(h + '/'));
   return (
     <nav className="fixed bottom-0 left-0 z-50 w-full border-t bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
       <ul className="mx-auto flex max-w-lg">

@@ -36,11 +36,14 @@ export default function BahanSisa() {
     setLoading(false);
   };
   const list = hasil || ideasFromStock(profile);
+  // Perkiraan penghematan = harga bahan resep teratas yang sudah ada di stok (harga bersifat estimasi).
+  const top = list[0];
+  const hemat = top ? Math.max(0, top.recipe.harga - top.biaya) : 0;
 
   return (
     <div className="space-y-4 md:space-y-5">
       <div><h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">Cek Bahan Sisa</h1><p className="text-slate-600 sm:text-lg">Olah stok bahan di kosan biar hemat & nggak mubazir</p></div>
-      <div className="rounded-2xl bg-accent-light p-4 text-sm text-amber-900"><b>Hemat sampai Rp15.000 / hari.</b> Kreasikan stok kulkas & meja kos tanpa perlu beli lauk baru.</div>
+      <div className="rounded-2xl bg-accent-light p-4 text-sm text-amber-900">{hemat > 0 ? <><b>Perkiraan hemat {rupiah(hemat)}</b> untuk ide teratas dengan memakai bahan yang sudah ada. </> : null}Kreasikan stok kulkas & meja kos tanpa perlu beli lauk baru. Harga bersifat estimasi.</div>
 
       {/* Input bahan */}
       <div className="flex gap-2">

@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { Check, ArrowRight } from 'lucide-react';
 import { useApp } from '@/components/AppProvider';
-import { ALAT_OPTIONS, PANTANGAN_OPTIONS, rupiah } from '@/lib/data';
+import { ALAT_OPTIONS, PANTANGAN_OPTIONS, JENIS_KELAMIN_OPTIONS, rupiah } from '@/lib/data';
 
 const PILIHAN_CEPAT = [{ l: 'Hemat', v: 20000 }, { l: 'Standar', v: 30000 }, { l: 'Leluasa', v: 50000 }];
 
@@ -46,6 +46,14 @@ export default function ProfilKos() {
         <div><h2 className="text-lg font-extrabold">Pantangan & Preferensi</h2><p className="text-sm text-slate-500">Kami sesuaikan rekomendasi agar aman dan nyaman untukmu.</p></div>
         <div className="flex flex-wrap gap-2">
           {PANTANGAN_OPTIONS.map((p) => { const on = profile.pantangan.includes(p); return <button key={p} onClick={() => setProfile({ pantangan: toggle(profile.pantangan, p) })} className={`chip transition-colors ${on ? 'bg-brand-mint text-brand-deeper' : 'hover:bg-slate-200'}`}>{on && <Check size={14} />}{p}</button>; })}
+        </div>
+      </section>
+
+      {/* Jenis kelamin: menentukan target gizi AKG */}
+      <section className="card space-y-3 md:space-y-4">
+        <div><h2 className="text-lg font-extrabold">Jenis Kelamin</h2><p className="text-sm text-slate-500">Dipakai untuk menghitung target gizi harian (AKG 2019, usia 19-29 tahun). Tidak dikirim ke layanan AI.</p></div>
+        <div className="grid grid-cols-2 gap-2 sm:max-w-md">
+          {JENIS_KELAMIN_OPTIONS.map((j) => { const on = profile.jenisKelamin === j; return <button key={j} onClick={() => setProfile({ jenisKelamin: j })} className={`flex items-center justify-between rounded-xl px-3 py-3 text-sm font-bold transition-colors ${on ? 'bg-brand-mint text-brand-deeper' : 'bg-slate-100 hover:bg-slate-200'}`}>{j}{on && <Check size={16} />}</button>; })}
         </div>
       </section>
 
