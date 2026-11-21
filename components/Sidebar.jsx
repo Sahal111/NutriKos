@@ -5,13 +5,13 @@ import { Home, UtensilsCrossed, ShoppingBag, HeartPulse, User, Settings, Refrige
 import { useApp } from './AppProvider';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Beranda', Icon: Home },
-  { href: '/menu', label: 'Rekomendasi Menu', Icon: UtensilsCrossed },
-  { href: '/bahan-sisa', label: 'Cek Bahan Sisa', Icon: Refrigerator },
-  { href: '/belanja', label: 'Daftar Belanja', Icon: ShoppingBag },
-  { href: '/gizi', label: 'Gizi Mingguan', Icon: HeartPulse },
-  { href: '/profil-kos', label: 'Profil Kos', Icon: Settings },
-  { href: '/profil', label: 'Profil Saya', Icon: User },
+  { href: "/beranda", label: "Beranda", Icon: Home },
+  { href: "/menu", label: "Rekomendasi Menu", Icon: UtensilsCrossed },
+  { href: "/bahan-sisa", label: "Cek Bahan Sisa", Icon: Refrigerator },
+  { href: "/belanja", label: "Daftar Belanja", Icon: ShoppingBag },
+  { href: "/gizi", label: "Gizi Mingguan", Icon: HeartPulse },
+  { href: "/profil-kos", label: "Profil Kos", Icon: Settings },
+  { href: "/profil", label: "Profil Saya", Icon: User },
 ];
 
 export default function Sidebar() {
@@ -97,9 +97,17 @@ export default function Sidebar() {
           <aside className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-white shadow-2xl animate-in slide-in-from-left duration-200">
             {/* Header Drawer with Close Button */}
             <div className="flex h-16 items-center justify-between border-b border-slate-200 px-4">
-              <Link href="/" onClick={closeSidebar} className="flex items-center gap-2">
+              <Link
+                href="/beranda"
+                onClick={closeSidebar}
+                className="flex items-center gap-2"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.png" alt="Logo NutriKos" className="h-8 w-8 object-contain" />
+                <img
+                  src="/logo.png"
+                  alt="Logo NutriKos"
+                  className="h-8 w-8 object-contain"
+                />
                 <span className="text-lg font-extrabold">
                   <span className="text-brand-dark">Nutri</span>
                   <span className="text-accent">Kos</span>

@@ -5,13 +5,13 @@ import { Bell, Menu } from 'lucide-react';
 import { useApp } from './AppProvider';
 
 const NAMA = {
-  '/': 'Beranda',
-  '/profil-kos': 'Profil Kos',
-  '/menu': 'Rekomendasi Menu',
-  '/bahan-sisa': 'Cek Bahan Sisa',
-  '/belanja': 'Daftar Belanja',
-  '/gizi': 'Gizi Mingguan',
-  '/profil': 'Profil Saya',
+  "/beranda": "Beranda",
+  "/profil-kos": "Profil Kos",
+  "/menu": "Rekomendasi Menu",
+  "/bahan-sisa": "Cek Bahan Sisa",
+  "/belanja": "Daftar Belanja",
+  "/gizi": "Gizi Mingguan",
+  "/profil": "Profil Saya",
 };
 
 export default function Header() {
@@ -31,9 +31,13 @@ export default function Header() {
           <Menu size={22} />
         </button>
 
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/beranda" className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Logo NutriKos" className="h-9 w-9 object-contain" />
+          <img
+            src="/logo.png"
+            alt="Logo NutriKos"
+            className="h-9 w-9 object-contain"
+          />
           <div className="leading-tight">
             <div className="flex items-center gap-2">
               <span className="text-xl font-extrabold tracking-tight">
@@ -62,7 +66,7 @@ export default function Header() {
           aria-label="Profil Saya"
           className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-light text-xl ring-2 ring-brand-mint transition-transform hover:scale-105"
         >
-          {profile?.avatar || '👩‍🎓'}
+          {profile?.avatar || "👩‍🎓"}
         </Link>
       </div>
     </header>

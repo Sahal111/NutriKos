@@ -6,10 +6,10 @@ import { useApp } from './AppProvider';
 import { buildShopping } from '@/lib/recommend';
 
 const TABS = [
-  { href: '/', label: 'Beranda', Icon: Home },
-  { href: '/menu', label: 'Menu', Icon: UtensilsCrossed },
-  { href: '/belanja', label: 'Belanja', Icon: ShoppingBag },
-  { href: '/gizi', label: 'Gizi', Icon: HeartPulse },
+  { href: "/beranda", label: "Beranda", Icon: Home },
+  { href: "/menu", label: "Menu", Icon: UtensilsCrossed },
+  { href: "/belanja", label: "Belanja", Icon: ShoppingBag },
+  { href: "/gizi", label: "Gizi", Icon: HeartPulse },
 ];
 
 export default function BottomNav() {

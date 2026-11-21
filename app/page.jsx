@@ -1,128 +1,256 @@
-'use client';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { Sparkles, Refrigerator, X, Plus, GraduationCap, Dices } from 'lucide-react';
-import { useApp } from '@/components/AppProvider';
-import RecipeCard from '@/components/RecipeCard';
-import { getRecipe, rupiah } from '@/lib/data';
-import { nutrisiDari, allowedRecipes } from '@/lib/recommend';
-import { mintaAI } from '@/lib/ai';
-import { targetHarian, hitungSkor } from '@/lib/gizi';
+import Link from "next/link";
+import {
+  ArrowRight,
+  Bot,
+  Check,
+  HeartPulse,
+  Leaf,
+  Refrigerator,
+  Settings,
+  ShoppingBag,
+  UtensilsCrossed,
+  Wallet,
+} from "lucide-react";
 
-export default function Beranda() {
-  const router = useRouter();
-  const { profile, plan, setPlan, generatePlan, setProfile, setAi, catatRiwayat, customPlanDetails, setTriggerAiModal, ready } = useApp();
-  const [bahanBaru, setBahanBaru] = useState('');
-  const [loading, setLoading] = useState(false);
-  if (!ready) return null;
+const FITUR = [
+  {
+    Icon: UtensilsCrossed,
+    judul: "Rekomendasi Menu",
+    isi: "Menu harian sesuai bujet, alat masak, dan pantanganmu.",
+  },
+  {
+    Icon: Refrigerator,
+    judul: "Cek Bahan Sisa",
+    isi: "Punya telur dan kol saja? Dapatkan ide masakan dari stok di kosmu.",
+  },
+  {
+    Icon: ShoppingBag,
+    judul: "Daftar Belanja",
+    isi: "Bahan terkumpul otomatis lengkap dengan estimasi biaya.",
+  },
+  {
+    Icon: HeartPulse,
+    judul: "Gizi Mingguan",
+    isi: "Skor protein, karbohidrat, dan sayur dibandingkan dengan AKG 2019.",
+  },
+  {
+    Icon: Bot,
+    judul: "Asisten AI",
+    isi: "AI memilih menu dari database resep. Gizi dan biaya tetap dihitung sistem.",
+  },
+  {
+    Icon: Settings,
+    judul: "Profil Kos",
+    isi: "Atur bujet harian, alat masak, pantangan, dan lokasi sekali saja.",
+  },
+];
 
-  const resep = plan.map(getRecipe).filter(Boolean);
-  const n = nutrisiDari(plan, customPlanDetails);
-  const sisa = profile.budget - n.biaya;
-  const persenTerpakai = Math.min(100, Math.round((n.biaya / profile.budget) * 100));
-  const target = targetHarian(profile.jenisKelamin);
-  const skor = hitungSkor(n, target);
-  const nama = profile.nama.split(' ')[0];
+const LANGKAH = [
+  ["Atur Profil Kos", "Isi bujet harian, alat masak, dan pantangan makananmu."],
+  ["Dapatkan Menu", "NutriKos menyusun menu hemat dan bergizi untuk hari ini."],
+  [
+    "Belanja dan Masak",
+    "Ikuti daftar belanja, masak, lalu pantau gizimu seminggu.",
+  ],
+];
 
-  const tambahBahan = () => {
-    const v = bahanBaru.trim();
-    if (!v) return;
-    if (!profile.stok.some((s) => s.toLowerCase() === v.toLowerCase())) setProfile({ stok: [...profile.stok, v] });
-    setBahanBaru('');
-  };
-  const rekomendasi = async () => {
-    setLoading(true);
-    const hasil = await mintaAI('menu', profile);
-    if (hasil && hasil.ids?.length) { setPlan(hasil.ids); catatRiwayat(hasil.ids); setAi({ alasan: hasil.alasan, sumber: hasil.sumber }); }
-    else { generatePlan(); setAi({ alasan: 'Dipilih berdasarkan bujet, alat masak, dan pantanganmu (mode aturan).', sumber: 'aturan' }); }
-    setLoading(false);
-    setTriggerAiModal?.(true);
-    router.push('/menu');
-  };
-  const acak = () => {
-    const list = allowedRecipes(profile);
-    if (list.length) router.push(`/menu/${list[Math.floor(Math.random() * list.length)].id}`);
-  };
+const Logo = ({ size = "h-9 w-9", teks = "text-xl" }) => (
+  <span className="flex items-center gap-2.5">
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img
+      src="/logo.png"
+      alt="Logo NutriKos"
+      className={`${size} object-contain`}
+    />
+    <span className={`${teks} font-extrabold tracking-tight`}>
+      <span className="text-brand-dark">Nutri</span>
+      <span className="text-accent">Kos</span>
+    </span>
+  </span>
+);
 
+export default function Landing() {
   return (
-    <div className="space-y-5 md:space-y-6 lg:space-y-8">
-      {/* Hero greeting */}
-      <div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-mint px-3 py-1 text-xs font-bold text-brand-deeper">
-          <GraduationCap size={14} /> Anak Kos Hemat Cerdas • UNUSIA Kab. Bogor
-        </span>
-        <h1 className="mt-3 text-2xl font-extrabold sm:text-3xl lg:text-4xl">Halo, {nama}! 👋</h1>
-        <p className="text-slate-600 sm:text-lg">Yuk atur menu sehat, lezat, dan tetap hemat di kantong hari ini!</p>
-      </div>
+    <div className="bg-white text-slate-900">
+      {/* Navbar */}
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+          <Link href="/" aria-label="NutriKos">
+            <Logo />
+          </Link>
+          <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-600 md:flex">
+            <a href="#fitur" className="hover:text-brand-dark">
+              Fitur
+            </a>
+            <a href="#cara-kerja" className="hover:text-brand-dark">
+              Cara Kerja
+            </a>
+          </nav>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className="rounded-xl px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
+            >
+              Masuk
+            </Link>
+            <Link href="/register" className="btn btn-primary !py-2">
+              Daftar
+            </Link>
+          </div>
+        </div>
+      </header>
 
-      {/* Budget & CTA section */}
-      <section className="card space-y-3 md:space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      {/* Hero */}
+      <section className="bg-gradient-to-b from-brand-light/70 to-white">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:py-20">
           <div>
-            <div className="text-xs font-bold uppercase text-slate-500">Sisa bujet hari ini</div>
-            <div className={`text-2xl font-extrabold lg:text-3xl ${sisa < 0 ? 'text-red-600' : 'text-brand-dark'}`}>{rupiah(sisa)}</div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-mint px-3 py-1 text-xs font-bold text-brand-deeper">
+              <Leaf size={14} /> Untuk mahasiswa perantau
+            </span>
+            <h1 className="mt-4 text-3xl font-extrabold leading-tight sm:text-4xl lg:text-5xl">
+              Makan <span className="text-brand-dark">bergizi</span> di kos,
+              tanpa bikin <span className="text-accent">kantong jebol</span>.
+            </h1>
+            <p className="mt-4 text-base text-slate-600 sm:text-lg">
+              NutriKos menyusun menu harian sesuai bujet, alat masak, dan
+              pantanganmu, lengkap dengan daftar belanja dan pelacak gizi
+              mingguan.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link href="/register" className="btn btn-primary px-6">
+                Mulai Gratis <ArrowRight size={18} />
+              </Link>
+              <Link href="/login" className="btn btn-soft px-6">
+                Saya sudah punya akun
+              </Link>
+            </div>
+            <ul className="mt-6 space-y-2 text-sm font-semibold text-slate-600">
+              {[
+                "Sesuai bujet harian anak kos",
+                "Bisa difilter pantangan, termasuk 100% halal",
+                "Cukup rice cooker dan kompor",
+              ].map((t) => (
+                <li key={t} className="flex items-center gap-2">
+                  <Check size={16} className="text-brand" /> {t}
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="text-sm text-slate-600 sm:text-right">
-            <div>Target: {rupiah(profile.budget)}</div>
-            <div>Terpakai: <b>{rupiah(n.biaya)}</b></div>
-          </div>
-        </div>
-        <div className="h-3 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-brand-dark transition-all" style={{ width: `${persenTerpakai}%` }} /></div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <button className="btn btn-primary disabled:opacity-70" disabled={loading} onClick={rekomendasi}><Sparkles size={18} /> {loading ? 'Menyusun menu...' : 'Rekomendasikan Menu'}</button>
-          <Link href="/bahan-sisa" className="btn btn-soft"><Refrigerator size={18} /> Cek Bahan Sisa</Link>
-        </div>
-      </section>
 
-      {/* Alat & Bahan Kos */}
-      <section className="space-y-3">
-        <h2 className="text-xl font-extrabold lg:text-2xl">Alat & Bahan Kos</h2>
-        <div className="flex flex-wrap gap-2">
-          {profile.alat.map((a) => <span key={a} className="chip chip-on">✓ {a}</span>)}
-          <Link href="/profil-kos" className="chip">+ Ubah alat</Link>
-        </div>
-        <div className="card">
-          <div className="mb-2 flex justify-between text-sm font-semibold"><span>Bahan tersimpan di kos:</span><span className="text-brand-dark">{profile.stok.length} bahan</span></div>
-          <div className="flex flex-wrap gap-2">
-            {profile.stok.map((s) => (
-              <span key={s} className="chip">{s}
-                <button aria-label={`Hapus ${s}`} onClick={() => setProfile({ stok: profile.stok.filter((x) => x !== s) })}><X size={14} /></button>
+          {/* Contoh tampilan (ilustrasi statis, bukan data nyata) */}
+          <div className="card mx-auto w-full max-w-md space-y-4 p-5 shadow-xl ring-1 ring-slate-200">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-slate-700">
+                Menu hari ini
               </span>
+              <span className="rounded-full bg-accent-light px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
+                Contoh tampilan
+              </span>
+            </div>
+            {[
+              ["Sarapan", "Telur dadar + nasi"],
+              ["Makan siang", "Tempe orek + tumis kol"],
+              ["Makan malam", "Nasi + sayur bening"],
+            ].map(([waktu, menu]) => (
+              <div
+                key={waktu}
+                className="flex items-center gap-3 rounded-xl bg-slate-50 p-3"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-light text-brand-dark">
+                  <UtensilsCrossed size={18} />
+                </span>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    {waktu}
+                  </div>
+                  <div className="text-sm font-semibold">{menu}</div>
+                </div>
+              </div>
             ))}
+            <div>
+              <div className="mb-1 flex items-center gap-1.5 text-xs font-bold text-slate-500">
+                <Wallet size={14} /> Bujet harian
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full w-4/5 rounded-full bg-brand" />
+              </div>
+            </div>
           </div>
-          <div className="mt-3 flex gap-2">
-            <input className="input" placeholder="Tambah bahan (misal: Tahu)" value={bahanBaru} onChange={(e) => setBahanBaru(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && tambahBahan()} />
-            <button className="btn btn-primary shrink-0" onClick={tambahBahan} aria-label="Tambah bahan"><Plus size={18} /></button>
-          </div>
         </div>
       </section>
 
-      {/* Menu Hari Ini */}
-      <section className="space-y-3">
-        <div className="flex items-end justify-between">
-          <div><h2 className="text-xl font-extrabold lg:text-2xl">Menu Hari Ini</h2><p className="text-sm text-slate-500">{resep.length} santapan cerdas pas bujet {rupiah(profile.budget)}</p></div>
-        </div>
-        {resep.length === 0 && <div className="card text-sm text-slate-600">Belum ada menu yang cocok dengan alat dan pantanganmu. Coba ubah di Profil Kos.</div>}
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {resep.map((r) => {
-            const porsi = customPlanDetails?.[r.id]?.porsi || 1;
-            return <RecipeCard key={r.id} recipe={r} action porsi={porsi} />;
-          })}
+      {/* Fitur */}
+      <section
+        id="fitur"
+        className="mx-auto max-w-6xl scroll-mt-16 px-4 py-14 sm:px-6"
+      >
+        <h2 className="text-center text-2xl font-extrabold sm:text-3xl">
+          Semua yang anak kos butuhkan
+        </h2>
+        <p className="mx-auto mt-2 max-w-xl text-center text-slate-600">
+          Dari memilih menu sampai memantau gizi, semua di satu tempat.
+        </p>
+        <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {FITUR.map(({ Icon, judul, isi }) => (
+            <div key={judul} className="card border border-slate-100 p-5">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-light text-brand-dark">
+                <Icon size={22} />
+              </span>
+              <h3 className="mt-4 font-bold">{judul}</h3>
+              <p className="mt-1 text-sm text-slate-600">{isi}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Skor Gizi */}
-      <section className="card">
-        <div className="text-lg font-extrabold lg:text-xl">Skor Gizi Menu Hari Ini: {skor.total}/100 <span className="text-sm font-bold text-slate-500">({skor.kategori})</span></div>
-        <p className="mt-1 text-sm text-slate-600">Protein {n.protein}g • Karbo {n.karbo}g • Sayur & buah {n.sayur} porsi (target harian {target.protein}g / {target.karbo}g / {target.sayur} porsi). <Link href="/gizi" className="font-bold text-brand-dark underline">Lihat skor mingguan</Link></p>
+      {/* Cara kerja */}
+      <section id="cara-kerja" className="scroll-mt-16 bg-surface">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+          <h2 className="text-center text-2xl font-extrabold sm:text-3xl">
+            Cara kerja
+          </h2>
+          <ol className="mt-9 grid gap-5 md:grid-cols-3">
+            {LANGKAH.map(([judul, isi], i) => (
+              <li key={judul} className="card p-5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-dark text-sm font-extrabold text-white">
+                  {i + 1}
+                </span>
+                <h3 className="mt-3 font-bold">{judul}</h3>
+                <p className="mt-1 text-sm text-slate-600">{isi}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
       </section>
 
-      {/* Ide Masak Acak */}
-      <section className="flex flex-col gap-3 rounded-2xl bg-accent p-4 text-white sm:flex-row sm:items-center sm:justify-between">
-        <div><div className="text-xs font-bold uppercase opacity-90">Bingung mau masak apa?</div><div className="text-xl font-extrabold">Ide Masak Acak</div></div>
-        <button onClick={acak} className="btn bg-amber-900 text-white shrink-0"><Dices size={18} /> Coba Sekarang</button>
+      {/* CTA akhir */}
+      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+        <div className="rounded-3xl bg-brand-dark px-6 py-10 text-center text-white sm:py-14">
+          <h2 className="text-2xl font-extrabold sm:text-3xl">
+            Siap makan sehat dan hemat?
+          </h2>
+          <p className="mx-auto mt-2 max-w-lg text-brand-light">
+            Buat akun gratis dan dapatkan menu pertamamu hari ini.
+          </p>
+          <Link
+            href="/register"
+            className="btn mt-6 bg-white px-6 text-brand-dark hover:bg-brand-light"
+          >
+            Daftar Sekarang <ArrowRight size={18} />
+          </Link>
+        </div>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 text-center text-xs text-slate-500 sm:flex-row sm:px-6 sm:text-left">
+          <Logo size="h-7 w-7" teks="text-base" />
+          <p>
+            Karya SEVENT X National Competition. Mendukung SDG 2 (Tanpa
+            Kelaparan). Data resep dan harga adalah estimasi contoh.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
