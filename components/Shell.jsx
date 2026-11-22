@@ -8,7 +8,7 @@ import ChatAI from "@/components/ChatAI";
 import { getSession } from "@/lib/auth";
 
 // Halaman tanpa Header/Sidebar dan tanpa wajib login.
-const PUBLIK = ["/", "/login", "/register"];
+const PUBLIK = ["/", "/login", "/register", "/lupa-sandi", "/reset-sandi"];
 
 export default function Shell({ children }) {
   const path = usePathname();

@@ -4,10 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthShell from "@/components/AuthShell";
 import PasswordInput from "@/components/PasswordInput";
+import { useApp } from "@/components/AppProvider";
 import { login } from "@/lib/auth";
+import { DEFAULT_PROFILE } from "@/lib/data";
 
 export default function Login() {
   const router = useRouter();
+  const { profile, setProfile } = useApp();
   const [f, setF] = useState({ email: "", sandi: "" });
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,7 +20,13 @@ export default function Login() {
     setErr("");
     setLoading(true);
     try {
-      await login(f);
+            const u = await login(f);
+            setProfile({
+              email: u.email,
+              ...(u.nama && profile.nama === DEFAULT_PROFILE.nama
+                ? { nama: u.nama }
+                : {}),
+            });
       router.replace("/beranda");
     } catch (x) {
       setErr(x.message);
@@ -67,6 +76,14 @@ export default function Login() {
             value={f.sandi}
             onChange={(e) => setF({ ...f, sandi: e.target.value })}
           />
+        </div>
+        <div className="text-right">
+          <Link
+            href="/lupa-sandi"
+            className="text-sm font-bold text-brand-dark hover:underline"
+          >
+            Lupa kata sandi?
+          </Link>
         </div>
         {err && (
           <p

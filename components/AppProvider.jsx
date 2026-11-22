@@ -1,11 +1,29 @@
-'use client';
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { DEFAULT_PROFILE } from '@/lib/data';
-import { recommendDaily, buildShopping } from '@/lib/recommend';
-import { kunciTanggal } from '@/lib/gizi';
+"use client";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { DEFAULT_PROFILE } from "@/lib/data";
+import { recommendDaily, buildShopping } from "@/lib/recommend";
+import { kunciTanggal } from "@/lib/gizi";
+import { supabase } from "@/lib/supabase";
+import {
+  muatProfil,
+  simpanProfil,
+  muatFavoritRiwayat,
+  simpanFavorit,
+  simpanRiwayat,
+  muatLog,
+  simpanLog,
+} from "@/lib/db";
+import { tanggalTerbaru } from "@/lib/syncMap";
 
-const KEY = 'nutrikos-v2';
-const LEGACY_KEY = 'nutrikos-v1';
+const KEY = "nutrikos-v2";
+const LEGACY_KEY = "nutrikos-v1";
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
 // Tanggal lokal perangkat (bukan UTC), agar pukul 00.00-07.00 WIB tidak terbaca sebagai kemarin.
@@ -14,7 +32,11 @@ export const hariIni = () => kunciTanggal();
 // Riwayat menu: { resepId, tanggal }. Satu resep dicatat sekali per tanggal; maksimal 200 entri terakhir.
 const tambahRiwayat = (riwayat = [], ids = []) => {
   const tanggal = hariIni();
-  const baru = ids.filter((id) => !riwayat.some((x) => x.resepId === id && x.tanggal === tanggal)).map((resepId) => ({ resepId, tanggal }));
+  const baru = ids
+    .filter(
+      (id) => !riwayat.some((x) => x.resepId === id && x.tanggal === tanggal),
+    )
+    .map((resepId) => ({ resepId, tanggal }));
   return [...riwayat, ...baru].slice(-200);
 };
 
@@ -38,13 +60,14 @@ export default function AppProvider({ children }) {
   const [ready, setReady] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [triggerAiModal, setTriggerAiModal] = useState(false);
-
+  const [dbSiap, setDbSiap] = useState(false); // true setelah profil dari DB selesai dimuat
+  const logSig = useRef({}); // tanggal -> isi catatan makan yang sudah tersimpan di DB (agar tidak dikirim ulang)
   useEffect(() => {
     try {
-      let saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+      let saved = JSON.parse(localStorage.getItem(KEY) || "null");
       if (!saved) {
         // Cek migrasi dari key lama
-        saved = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null');
+        saved = JSON.parse(localStorage.getItem(LEGACY_KEY) || "null");
       }
       if (saved) {
         setState({
@@ -74,19 +97,120 @@ export default function AppProvider({ children }) {
     } catch (e) {}
   }, [state, ready]);
 
+  // Muat profil dari DB saat sesi ada (saat halaman dibuka maupun setelah login); kosongkan penanda saat keluar.
+  useEffect(() => {
+    if (!ready) return;
+    let batal = false;
+    const muat = async () => {
+      try {
+        const [dariDb, koleksi, logDb] = await Promise.all([
+          muatProfil(),
+          muatFavoritRiwayat(),
+          muatLog(),
+        ]);
+        if (batal) return;
+        Object.entries(logDb || {}).forEach(([t, e]) => {
+          logSig.current[t] = JSON.stringify(e);
+        });
+        setState((s) => ({
+          ...s,
+          ...(dariDb ? { profile: { ...s.profile, ...dariDb } } : {}),
+          // Bila DB sudah berisi, DB yang dipakai. Bila masih kosong, data lokal dipertahankan lalu diunggah oleh effect di bawah.
+          ...(koleksi?.favorit.length ? { favorit: koleksi.favorit } : {}),
+          ...(koleksi?.riwayat.length ? { riwayat: koleksi.riwayat } : {}),
+          // Catatan makan digabung per tanggal: tanggal yang ada di DB memakai versi DB, tanggal lain tetap lokal lalu diunggah.
+          ...(logDb && Object.keys(logDb).length
+            ? { log: { ...s.log, ...logDb } }
+            : {}),
+        }));
+        setDbSiap(true);
+      } catch (e) {
+        // Gagal memuat: penyimpanan tetap dimatikan agar data lokal tidak menimpa data di DB.
+        console.warn("[NutriKos] Gagal memuat data dari DB:", e.message);
+      }
+    };
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        logSig.current = {};
+        return setDbSiap(false);
+      }
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN")
+        setTimeout(muat, 0);
+    });
+    return () => {
+      batal = true;
+      data.subscription.unsubscribe();
+    };
+  }, [ready]);
+
+  // Simpan profil ke DB setiap berubah (ditunda 0,8 detik), hanya setelah profil DB selesai dimuat.
+  useEffect(() => {
+    if (!ready || !dbSiap) return;
+    const t = setTimeout(() => {
+      simpanProfil(state.profile).catch((e) =>
+        console.warn("[NutriKos] Gagal menyimpan profil:", e.message),
+      );
+    }, 800);
+    return () => clearTimeout(t);
+  }, [state.profile, ready, dbSiap]);
+
+  // Favorit dan riwayat menu (F6): simpan ke DB setiap berubah.
+  useEffect(() => {
+    if (!ready || !dbSiap) return;
+    const t = setTimeout(() => {
+      simpanFavorit(state.favorit).catch((e) =>
+        console.warn("[NutriKos] Gagal menyimpan favorit:", e.message),
+      );
+    }, 800);
+    return () => clearTimeout(t);
+  }, [state.favorit, ready, dbSiap]);
+
+  useEffect(() => {
+    if (!ready || !dbSiap) return;
+    const t = setTimeout(() => {
+      simpanRiwayat(state.riwayat).catch((e) =>
+        console.warn("[NutriKos] Gagal menyimpan riwayat:", e.message),
+      );
+    }, 800);
+    return () => clearTimeout(t);
+  }, [state.riwayat, ready, dbSiap]);
+
+  // Catatan makan (F5/F8): simpan ke jadwal_makan hanya untuk tanggal yang berubah (14 hari terakhir).
+  useEffect(() => {
+    if (!ready || !dbSiap) return;
+    const t = setTimeout(async () => {
+      const berubah = tanggalTerbaru(state.log, 14).filter(
+        (d) => logSig.current[d] !== JSON.stringify(state.log[d]),
+      );
+      if (!berubah.length) return;
+      try {
+        await simpanLog(state.log, berubah);
+        berubah.forEach((d) => {
+          logSig.current[d] = JSON.stringify(state.log[d]);
+        });
+      } catch (e) {
+        console.warn("[NutriKos] Gagal menyimpan catatan makan:", e.message);
+      }
+    }, 800);
+    return () => clearTimeout(t);
+  }, [state.log, ready, dbSiap]);
+  
   // Sidebar helpers
   const toggleSidebar = useCallback(() => setIsSidebarOpen((v) => !v), []);
   const closeSidebar = useCallback(() => setIsSidebarOpen(false), []);
   const openSidebar = useCallback(() => setIsSidebarOpen(true), []);
 
   // Profile
-  const setProfile = useCallback((patch) => setState((s) => ({ ...s, profile: { ...s.profile, ...patch } })), []);
+  const setProfile = useCallback(
+    (patch) => setState((s) => ({ ...s, profile: { ...s.profile, ...patch } })),
+    [],
+  );
 
   // Plan & Recipes
   const setPlan = useCallback((plan) => setState((s) => ({ ...s, plan })), []);
   const generatePlan = useCallback(() => {
     setState((s) => {
-      const plan = recommendDaily(s.profile);
+      const plan = recommendDaily(s.profile, s.plan);
       return {
         ...s,
         plan,
@@ -102,12 +226,27 @@ export default function AppProvider({ children }) {
   const toggleFavorit = useCallback((resepId) => {
     setState((s) => {
       const ada = s.favorit.some((f) => f.resepId === resepId);
-      return { ...s, favorit: ada ? s.favorit.filter((f) => f.resepId !== resepId) : [...s.favorit, { resepId, tanggal: hariIni() }] };
+      return {
+        ...s,
+        favorit: ada
+          ? s.favorit.filter((f) => f.resepId !== resepId)
+          : [...s.favorit, { resepId, tanggal: hariIni() }],
+      };
     });
   }, []);
-  const catatRiwayat = useCallback((ids) => setState((s) => ({ ...s, riwayat: tambahRiwayat(s.riwayat, ids) })), []);
+  const catatRiwayat = useCallback(
+    (ids) =>
+      setState((s) => ({ ...s, riwayat: tambahRiwayat(s.riwayat, ids) })),
+    [],
+  );
 
-  const addExtra = useCallback((id) => setState((s) => (s.extra.includes(id) ? s : { ...s, extra: [...s.extra, id] })), []);
+  const addExtra = useCallback(
+    (id) =>
+      setState((s) =>
+        s.extra.includes(id) ? s : { ...s, extra: [...s.extra, id] },
+      ),
+    [],
+  );
 
   // Ganti satu resep di dalam plan
   const updateRecipeInPlan = useCallback((oldId, newId) => {
@@ -151,7 +290,9 @@ export default function AppProvider({ children }) {
 
   // Tambah resep ke plan
   const addRecipeToPlan = useCallback((recipeId) => {
-    setState((s) => (s.plan.includes(recipeId) ? s : { ...s, plan: [...s.plan, recipeId] }));
+    setState((s) =>
+      s.plan.includes(recipeId) ? s : { ...s, plan: [...s.plan, recipeId] },
+    );
   }, []);
 
   // Set porsi resep
@@ -160,16 +301,31 @@ export default function AppProvider({ children }) {
       ...s,
       customPlanDetails: {
         ...s.customPlanDetails,
-        [recipeId]: { ...(s.customPlanDetails[recipeId] || {}), porsi: Math.max(1, porsi) },
+        [recipeId]: {
+          ...(s.customPlanDetails[recipeId] || {}),
+          porsi: Math.max(1, porsi),
+        },
       },
     }));
   }, []);
 
   // Shopping List Management
   const getShoppingItems = useCallback(() => {
-    const { profile, plan, extra, customShoppingItems, shoppingOverrides, deletedShoppingItems, customPlanDetails } = state;
+    const {
+      profile,
+      plan,
+      extra,
+      customShoppingItems,
+      shoppingOverrides,
+      deletedShoppingItems,
+      customPlanDetails,
+    } = state;
     // 1. Ambil bahan dasar dari menu
-    const baseItems = buildShopping(profile, [...plan, ...extra], customPlanDetails);
+    const baseItems = buildShopping(
+      profile,
+      [...plan, ...extra],
+      customPlanDetails,
+    );
 
     // 2. Filter bahan yang dihapus, terapkan override
     const processedBaseItems = baseItems
@@ -205,10 +361,10 @@ export default function AppProvider({ children }) {
     const newItem = {
       id: `custom-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       nama: item.nama.trim(),
-      qty: item.qty?.trim() || '1 porsi',
+      qty: item.qty?.trim() || "1 porsi",
       harga: Math.max(0, Number(item.harga) || 0),
-      kat: item.kat || 'sayur',
-      untuk: item.untuk?.trim() || 'Tambahan Manual',
+      kat: item.kat || "sayur",
+      untuk: item.untuk?.trim() || "Tambahan Manual",
       sudahAda: false,
       isCustom: true,
     };
@@ -235,7 +391,7 @@ export default function AppProvider({ children }) {
       if (originalItem.isCustom) {
         // Update di customShoppingItems
         const updatedCustom = s.customShoppingItems.map((c) =>
-          c.id === originalItem.id ? { ...c, ...updatedFields } : c
+          c.id === originalItem.id ? { ...c, ...updatedFields } : c,
         );
         return {
           ...s,
@@ -267,7 +423,9 @@ export default function AppProvider({ children }) {
       if (item.isCustom) {
         return {
           ...s,
-          customShoppingItems: s.customShoppingItems.filter((c) => c.id !== item.id),
+          customShoppingItems: s.customShoppingItems.filter(
+            (c) => c.id !== item.id,
+          ),
         };
       } else {
         const key = item.originalNama || item.nama;
@@ -289,7 +447,10 @@ export default function AppProvider({ children }) {
     }));
   }, []);
 
-  const setChecked = useCallback((checked) => setState((s) => ({ ...s, checked })), []);
+  const setChecked = useCallback(
+    (checked) => setState((s) => ({ ...s, checked })),
+    [],
+  );
 
   const markAllShoppingBought = useCallback((items) => {
     setState((s) => {
@@ -313,11 +474,17 @@ export default function AppProvider({ children }) {
 
   const setAi = useCallback((ai) => setState((s) => ({ ...s, ai })), []);
   // Catatan makan menyimpan id menu beserta porsinya saat dicatat, agar skor mingguan tidak berubah bila menu diedit kemudian.
-  const logToday = useCallback(() => setState((s) => {
-    const porsi = {};
-    s.plan.forEach((id) => { porsi[id] = s.customPlanDetails[id]?.porsi || 1; });
-    return { ...s, log: { ...s.log, [hariIni()]: { ids: s.plan, porsi } } };
-  }), []);
+  const logToday = useCallback(
+    () =>
+      setState((s) => {
+        const porsi = {};
+        s.plan.forEach((id) => {
+          porsi[id] = s.customPlanDetails[id]?.porsi || 1;
+        });
+        return { ...s, log: { ...s.log, [hariIni()]: { ids: s.plan, porsi } } };
+      }),
+    [],
+  );
   const reset = useCallback(() => {
     const p = DEFAULT_PROFILE;
     setState({

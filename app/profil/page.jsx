@@ -33,11 +33,15 @@ export default function ProfilSaya() {
     setTimeout(() => setToast(false), 2500);
   };
     const keluar = async () => {
-      if (confirm("Keluar dan hapus data di perangkat ini?")) {
-        reset();
-        await logout();
-        router.push("/");
-      }
+            if (
+              confirm(
+                "Keluar dari akun? Profil, favorit, riwayat, dan catatan gizi tetap tersimpan di akunmu. Rencana menu dan daftar belanja di perangkat ini akan dihapus.",
+              )
+            ) {
+              await logout();
+              reset();
+              router.push("/");
+            }
     };
 
   return (

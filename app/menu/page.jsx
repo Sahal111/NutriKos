@@ -179,10 +179,9 @@ export default function MenuPage() {
   };
 
   // Daftar kandidat resep untuk modal edit (diutamakan slot sama atau semua yang cocok)
-  const kandidatResep = useMemo(() => {
-    if (!resepAktif) return semua;
-    return semua.filter((r) => cocokFilter(r, filterModal));
-  }, [semua, resepAktif, filterModal]);
+    const kandidatResep = !resepAktif
+      ? semua
+      : semua.filter((r) => cocokFilter(r, filterModal));
 
   return (
     <div className="space-y-6 pb-24 lg:pb-8">

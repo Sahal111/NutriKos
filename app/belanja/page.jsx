@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState } from "react";
 import {
   Share2,
   ShoppingCart,
@@ -75,13 +75,11 @@ export default function BelanjaPage() {
   const sisaBujet = profile.budget - estimasiTotal;
 
   // Kelompokkan per kategori yang teratur
-  const grupKategori = useMemo(() => {
-    return KATEGORI_KEYS.map((k) => ({
-      key: k,
-      label: KAT[k] || k,
-      list: items.filter((x) => x.kat === k),
-    }));
-  }, [items]);
+  const grupKategori = KATEGORI_KEYS.map((k) => ({
+    key: k,
+    label: KAT[k] || k,
+    list: items.filter((x) => x.kat === k),
+  }));
 
   // Handler Buka Modal Edit
   const bukaModalEdit = (item) => {
