@@ -21,6 +21,7 @@ import {
   simpanLog,
 } from "@/lib/db";
 import { tanggalTerbaru } from "@/lib/syncMap";
+import { bacaUkuranHuruf, terapkanUkuranHuruf } from "@/lib/ukuranHuruf";
 
 const KEY = "nutrikos-v2";
 const LEGACY_KEY = "nutrikos-v1";
@@ -97,6 +98,11 @@ export default function AppProvider({ children }) {
     } catch (e) {}
   }, [state, ready]);
 
+  // Terapkan ukuran huruf pilihan pengguna (N4) saat aplikasi dibuka.
+  useEffect(() => {
+    terapkanUkuranHuruf(bacaUkuranHuruf());
+  }, []);
+  
   // Muat profil dari DB saat sesi ada (saat halaman dibuka maupun setelah login); kosongkan penanda saat keluar.
   useEffect(() => {
     if (!ready) return;
@@ -194,7 +200,7 @@ export default function AppProvider({ children }) {
     }, 800);
     return () => clearTimeout(t);
   }, [state.log, ready, dbSiap]);
-  
+
   // Sidebar helpers
   const toggleSidebar = useCallback(() => setIsSidebarOpen((v) => !v), []);
   const closeSidebar = useCallback(() => setIsSidebarOpen(false), []);

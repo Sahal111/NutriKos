@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Plus, X, Sparkles, Clock } from 'lucide-react';
 import { useApp } from '@/components/AppProvider';
-import { ideasFromStock } from '@/lib/recommend';
+import { ideasFromStock, ideaDariId } from "@/lib/recommend";
 import { mintaAI } from '@/lib/ai';
 import { rupiah } from '@/lib/data';
 
@@ -28,7 +28,13 @@ export default function BahanSisa() {
     const lokal = ideasFromStock(profile);
     const res = await mintaAI('bahan', profile);
     if (res && res.ids?.length) {
-      const pilihan = res.ids.map((id) => lokal.find((x) => x.recipe.id === id)).filter(Boolean);
+      // Pilihan AI yang tidak masuk 6 besar lokal tetap ditampilkan (dihitung kecocokannya), bukan dibuang.
+      const pilihan = res.ids
+        .map(
+          (id) =>
+            lokal.find((x) => x.recipe.id === id) || ideaDariId(id, profile),
+        )
+        .filter(Boolean);
       const sisa = lokal.filter((x) => !res.ids.includes(x.recipe.id));
       setHasil([...pilihan, ...sisa]);
       setAiInfo({ alasan: res.alasan, sumber: res.sumber });

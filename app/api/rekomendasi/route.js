@@ -1,16 +1,21 @@
 import { allowedRecipes, recommendDaily, ideasFromStock, nutrisiDari } from '@/lib/recommend';
-import { jalankanAI } from '@/lib/aiPipeline';
+import { jalankanAI } from "@/lib/aiPipeline";
+import { penggunaDariRequest, tokenDariRequest } from "@/lib/authServer";
+import { catatPakaiAI } from "@/lib/kuotaAI";
 
 export const runtime = 'nodejs';
 
-// ---- pembatas sederhana (per IP, 20 permintaan / menit) ----
+// ---- pembatas sederhana (per menit, disimpan di memori server) ----
+// Catatan: di hosting serverless tiap instance punya memori sendiri, jadi ini batas kasar.
+// Perlindungan utamanya adalah kewajiban masuk (token Supabase) di bawah.
 const hits = new Map();
-function limited(ip) {
+function limited(kunci, maks) {
   const now = Date.now();
-  const arr = (hits.get(ip) || []).filter((t) => now - t < 60_000);
+  if (hits.size > 5000) for (const [k, v] of hits) if (!v.some((t) => now - t < 60_000)) hits.delete(k);
+  const arr = (hits.get(kunci) || []).filter((t) => now - t < 60_000);
   arr.push(now);
-  hits.set(ip, arr);
-  return arr.length > 20;
+  hits.set(kunci, arr);
+  return arr.length > maks;
 }
 
 const bersih = (s, n = 50) => String(s).replace(/[^\p{L}\p{N}\s&/().,-]/gu, '').slice(0, n).trim();
@@ -180,11 +185,25 @@ function hasilAturan(mode, profil) {
 }
 
 export async function POST(req) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || 'lokal';
-  if (limited(ip)) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "lokal";
+  if (limited(`ip:${ip}`, 60)) {
     return Response.json(
-      { error: 'Terlalu banyak permintaan, coba lagi sebentar.' },
-      { status: 429 }
+      { error: "Terlalu banyak permintaan, coba lagi sebentar." },
+      { status: 429 },
+    );
+  }
+
+  // Wajib masuk: tanpa token Supabase yang sah, AI tidak dipanggil sama sekali.
+  const uid = await penggunaDariRequest(req);
+  if (!uid)
+    return Response.json(
+      { error: "Perlu masuk terlebih dahulu." },
+      { status: 401 },
+    );
+  if (limited(`u:${uid}`, 20)) {
+    return Response.json(
+      { error: "Terlalu banyak permintaan, coba lagi sebentar." },
+      { status: 429 },
     );
   }
 
@@ -192,45 +211,71 @@ export async function POST(req) {
   try {
     body = await req.json();
   } catch {
-    return Response.json({ error: 'Format JSON salah' }, { status: 400 });
+    return Response.json({ error: "Format JSON salah" }, { status: 400 });
   }
 
-  const mode = body.mode || 'menu';
+  const mode = body.mode || "menu";
   const profil = bacaProfil(body.profile);
 
   // 1. Mode Chat Interaktif dengan AI
-  if (mode === 'chat') {
-    const pesan = String(body.pesan || '').trim().slice(0, 500);
-    const riwayat = (Array.isArray(body.riwayat) ? body.riwayat.slice(-10) : []).map((m) => ({
-      dari: m?.dari === 'user' ? 'user' : 'ai',
-      teks: String(m?.teks || '').slice(0, 500),
+  if (mode === "chat") {
+    const pesan = String(body.pesan || "")
+      .trim()
+      .slice(0, 500);
+    const riwayat = (
+      Array.isArray(body.riwayat) ? body.riwayat.slice(-10) : []
+    ).map((m) => ({
+      dari: m?.dari === "user" ? "user" : "ai",
+      teks: String(m?.teks || "").slice(0, 500),
     }));
-    if (!pesan) return Response.json({ balasan: 'Hei, mau tanya apa nih? Soal menu, bujet, atau resep?' });
+    if (!pesan)
+      return Response.json({
+        balasan: "Hei, mau tanya apa nih? Soal menu, bujet, atau resep?",
+      });
 
     try {
+      // Kuota harian AI: bila habis atau tidak bisa diperiksa, jatuh ke jawaban cadangan di bawah (AI tidak dipanggil).
+      if ((await catatPakaiAI(tokenDariRequest(req))) !== "ok")
+        throw new Error("kuota AI tidak tersedia");
       const prompt = bangunPromptChat(pesan, profil, riwayat);
       const jawaban = await panggilAI(prompt);
-      return Response.json({ balasan: jawaban, sumber: 'ai' });
+      return Response.json({ balasan: jawaban, sumber: "ai" });
     } catch (e) {
       // Fallback jawaban cerdas lokal jika offline/tanpa API key
       const pesanLower = pesan.toLowerCase();
-      const alatInfo = (profil.alat && profil.alat.length) ? `alat ${profil.alat.join(', ')}` : 'alat seadanya';
-      let fallbackText = `Dengan bujet Rp${(profil.budget || 30000).toLocaleString('id-ID')}/hari dan ${alatInfo}, fokus ke protein murah dulu: telur, tahu, tempe. Belanja sayur di warung gang atau pasar subuh bisa hemat 40% loh!`;
+      const alatInfo =
+        profil.alat && profil.alat.length
+          ? `alat ${profil.alat.join(", ")}`
+          : "alat seadanya";
+      let fallbackText = `Dengan bujet Rp${(profil.budget || 30000).toLocaleString("id-ID")}/hari dan ${alatInfo}, fokus ke protein murah dulu: telur, tahu, tempe. Belanja sayur di warung gang atau pasar subuh bisa hemat 40% loh!`;
 
-      if (pesanLower.includes('tempe')) {
-        fallbackText = 'Tempe itu jagoan anak kos! Coba: 1) Tempe orek kecap (potong dadu, goreng, tumis bawang + kecap manis), 2) Nasi liwet tempe di rice cooker (masukin tempe sama bawang putih waktu masak nasi), atau 3) Tempe goreng tepung renyah. Murah, gampang, dan proteinnya lumayan tinggi!';
-      } else if (pesanLower.includes('tahu')) {
-        fallbackText = 'Tahu gampang banget! Tumis tahu tauge kecap cuma 10 menit, atau coba tahu orak-arik telur, atau sup tahu sayur bening yang segar. Semua bisa di rice cooker/kompor dan harganya di bawah Rp5.000!';
-      } else if (pesanLower.includes('telur')) {
-        fallbackText = 'Telur itu superfood-nya anak kos. 1 butir ~6g protein, harga Rp2.000-an. Variasiin jadi dadar daun bawang, orak-arik kol, atau telur rebus kecap — bisa di rice cooker semua!';
-      } else if (pesanLower.includes('kangkung') || pesanLower.includes('bayam') || pesanLower.includes('sayur')) {
-        fallbackText = 'Kangkung sama bayam itu Rp2.000-3.000 seikat, worth it banget! Tumis 3-5 menit sama bawang + cabai rawit sudah enak. Jangan overcook biar seratnya tetap bagus.';
-      } else if (pesanLower.includes('bujet') || pesanLower.includes('hemat') || pesanLower.includes('uang')) {
-        fallbackText = `Trik hemat bujet Rp${(profil.budget || 30000).toLocaleString('id-ID')}/hari: masak nasi sendiri (hemat Rp10K/hari), beli bumbu racik eceran Rp1.000, dan belanja sayur ikat di warung subuh. Protein dari tahu-tempe-telur sudah cukup gizi!`;
-      } else if (pesanLower.includes('rice cooker')) {
-        fallbackText = 'Rice cooker bukan cuma buat nasi! Kamu bisa masak nasi liwet tempe, bubur kacang hijau, sup sayur bening, sampai ngukus telur + tahu sekaligus bareng nasi. Life hack banget!';
+      if (pesanLower.includes("tempe")) {
+        fallbackText =
+          "Tempe itu jagoan anak kos! Coba: 1) Tempe orek kecap (potong dadu, goreng, tumis bawang + kecap manis), 2) Nasi liwet tempe di rice cooker (masukin tempe sama bawang putih waktu masak nasi), atau 3) Tempe goreng tepung renyah. Murah, gampang, dan proteinnya lumayan tinggi!";
+      } else if (pesanLower.includes("tahu")) {
+        fallbackText =
+          "Tahu gampang banget! Tumis tahu tauge kecap cuma 10 menit, atau coba tahu orak-arik telur, atau sup tahu sayur bening yang segar. Semua bisa di rice cooker/kompor dan harganya di bawah Rp5.000!";
+      } else if (pesanLower.includes("telur")) {
+        fallbackText =
+          "Telur itu superfood-nya anak kos. 1 butir ~6g protein, harga Rp2.000-an. Variasiin jadi dadar daun bawang, orak-arik kol, atau telur rebus kecap — bisa di rice cooker semua!";
+      } else if (
+        pesanLower.includes("kangkung") ||
+        pesanLower.includes("bayam") ||
+        pesanLower.includes("sayur")
+      ) {
+        fallbackText =
+          "Kangkung sama bayam itu Rp2.000-3.000 seikat, worth it banget! Tumis 3-5 menit sama bawang + cabai rawit sudah enak. Jangan overcook biar seratnya tetap bagus.";
+      } else if (
+        pesanLower.includes("bujet") ||
+        pesanLower.includes("hemat") ||
+        pesanLower.includes("uang")
+      ) {
+        fallbackText = `Trik hemat bujet Rp${(profil.budget || 30000).toLocaleString("id-ID")}/hari: masak nasi sendiri (hemat Rp10K/hari), beli bumbu racik eceran Rp1.000, dan belanja sayur ikat di warung subuh. Protein dari tahu-tempe-telur sudah cukup gizi!`;
+      } else if (pesanLower.includes("rice cooker")) {
+        fallbackText =
+          "Rice cooker bukan cuma buat nasi! Kamu bisa masak nasi liwet tempe, bubur kacang hijau, sup sayur bening, sampai ngukus telur + tahu sekaligus bareng nasi. Life hack banget!";
       }
-      return Response.json({ balasan: fallbackText, sumber: 'aturan' });
+      return Response.json({ balasan: fallbackText, sumber: "aturan" });
     }
   }
 
@@ -239,8 +284,12 @@ export async function POST(req) {
   const kandidat = allowedRecipes(profil);
   if (kandidat.length === 0) return Response.json(hasilAturan(mode, profil));
 
+  // Kuota harian AI: bila habis atau tidak bisa diperiksa, pakai cadangan berbasis aturan (AI tidak dipanggil).
+  if ((await catatPakaiAI(tokenDariRequest(req))) !== "ok")
+    return Response.json(hasilAturan(mode, profil));
+
   const hasil = await jalankanAI({
-    mode: mode === 'bahan' ? 'bahan' : 'menu',
+    mode: mode === "bahan" ? "bahan" : "menu",
     profil,
     prompt: bangunPrompt(mode, profil, kandidat),
     panggil: panggilAI,

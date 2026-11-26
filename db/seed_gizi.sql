@@ -1,0 +1,111 @@
+-- Dibuat otomatis oleh scripts/gen-seed-gizi.mjs dari lib/tkpi.js dan lib/data.js. Aman dijalankan berulang.
+-- Jalankan SETELAH db/seed_resep.sql (resep_bahan mengacu ke tabel resep).
+-- Sumber gizi: Tabel Komposisi Pangan Indonesia (TKPI) 2017, nilai per 100 g bagian yang dapat dimakan.
+-- Takaran gram per resep adalah asumsi ukuran rumah tangga (lihat komentar di lib/tkpi.js), perlu diverifikasi tim.
+alter table bahan add column if not exists kode_tkpi text;
+alter table bahan add column if not exists nama_tkpi text;
+alter table bahan add column if not exists catatan text;
+
+insert into bahan (kunci, nama, kategori, satuan, harga_rata_rata, energi, protein, karbohidrat, lemak, serat, kode_tkpi, nama_tkpi, catatan) values
+  ('oat', 'Oat instan', 'karbohidrat', 'per 100 g', 5000, 324, 11, 61, 4, 3.1, 'AR019', 'Jali, mentah', 'PROKSI: Oat/havermut tidak ada di TKPI 2017; dipakai serealia utuh terdekat (jali)'),
+  ('telur', 'Telur ayam', 'protein', 'per 100 g', 3567, 154, 12.4, 0.7, 10.8, 0, 'HR002', 'Telur ayam ras, segar', null),
+  ('pisang', 'Pisang', 'sayur', 'per 100 g', 2000, 108, 1, 24.3, 0.8, 1.9, 'ER074', 'Pisang ambon, segar', null),
+  ('nasi', 'Nasi putih', 'karbohidrat', 'per 100 g', 875, 180, 3, 39.8, 0.3, 0.2, 'AP001', 'Nasi', null),
+  ('wortel', 'Wortel', 'sayur', 'per 100 g', 1875, 36, 1, 7.9, 0.6, 1, 'DR166', 'Wortel, segar', null),
+  ('daun bawang', 'Daun bawang', 'sayur', 'per 100 g', 5000, 41, 2, 7.8, 0.3, 2.1, 'DR018', 'Daun bawang merah, segar', null),
+  ('bawang', 'Bawang merah & putih', 'lainnya', 'per 100 g', 4958, 46, 1.5, 9.2, 0.3, 1.7, 'NR007', 'Bawang merah, segar', null),
+  ('garam', 'Minyak & garam', 'lainnya', 'per 100 g', 0, 0, 0, 0, 0, 0, null, 'Garam / kaldu (bumbu)', 'Tidak ada di TKPI; dianggap tanpa zat gizi bermakna'),
+  ('kacang hijau', 'Kacang hijau', 'protein', 'per 100 g', 4000, 323, 22.9, 56.8, 1.5, 7.5, 'CR014', 'Kacang hijau, kering', null),
+  ('gula', 'Gula merah', 'lainnya', 'per 100 g', 6667, 386, 3, 76, 10, 0, 'MP006', 'Gula kelapa', 'Gula merah = gula kelapa/aren; dipakai gula kelapa'),
+  ('santan', 'Santan sachet', 'lainnya', 'per 100 g', 2308, 122, 2, 7.6, 10, 1.4, 'KP003', 'Santan (dengan air)', null),
+  ('roti', 'Roti tawar', 'karbohidrat', 'per 100 g', 3333, 248, 8, 50, 1.2, 9.1, 'AP024', 'Roti putih', 'Serat 9,1 g/100 g sesuai yang tercetak di TKPI (tampak tinggi untuk roti putih)'),
+  ('selai', 'Selai cokelat', 'lainnya', 'per 100 g', 6667, 527, 2, 62.7, 29.8, 6.5, 'MP001', 'Coklat manis, batang', 'PROKSI: Selai cokelat tidak ada di TKPI 2017; dipakai cokelat manis batang'),
+  ('beras', 'Beras', 'karbohidrat', 'per 100 g', 1333, 357, 8.4, 77.1, 1.7, 0.2, 'AR001', 'Beras giling, mentah', null),
+  ('tempe', 'Tempe', 'protein', 'per 100 g', 3000, 201, 20.8, 13.5, 8.8, 1.4, 'CP077', 'Tempe kedelai murni, mentah', null),
+  ('bayam', 'Bayam', 'sayur', 'per 100 g', 2857, 16, 0.9, 2.9, 0.4, 0.7, 'DR008', 'Bayam, segar', null),
+  ('jagung', 'Jagung manis', 'sayur', 'per 100 g', 2000, 147, 5.1, 31.5, 0.7, 1.3, 'AR015', 'Jagung muda, kuning, mentah', null),
+  ('kol', 'Kol / Kubis', 'sayur', 'per 100 g', 2000, 51, 2.5, 8, 1.1, 3.4, 'DR044', 'Daun kubis, segar', null),
+  ('cabai', 'Cabai rawit', 'lainnya', 'per 100 g', 12639, 120, 4.7, 19.9, 2.4, 15.2, 'NR015', 'Cabai rawit, segar', null),
+  ('kecap', 'Kecap manis', 'lainnya', 'per 100 g', 6222, 71, 5.7, 9, 1.3, 0, 'NP005', 'Kecap', null),
+  ('teri', 'Ikan teri', 'protein', 'per 100 g', 15000, 170, 33.4, 0, 3, 0, 'GP042', 'Ikan teri, kering, mentah', null),
+  ('kangkung', 'Kangkung', 'sayur', 'per 100 g', 2000, 28, 3.4, 3.9, 0.7, 2, 'DR100', 'Kangkung, segar', null),
+  ('tahu', 'Tahu putih', 'protein', 'per 100 g', 2500, 80, 10.9, 0.8, 4.7, 0.1, 'CP061', 'Tahu, mentah', null),
+  ('tauge', 'Tauge', 'sayur', 'per 100 g', 3000, 28, 2.3, 4, 0.3, 2.5, 'DR141', 'Sawi, segar', 'PROKSI: Tauge/kecambah kacang hijau tidak ada di TKPI 2017 ("toge" di TKPI adalah tumbuhan lain); dipakai sayuran daun terdekat (sawi)'),
+  ('ayam', 'Ayam', 'protein', 'per 100 g', 5000, 298, 18.2, 0, 25, 0, 'FR005', 'Ayam, daging, segar', 'Nilai TKPI untuk daging ayam berikut lemak/kulit'),
+  ('mi', 'Mi instan', 'karbohidrat', 'per 100 g', 4286, 339, 10, 70.9, 1.7, 0.4, 'AP022', 'Mi kering', 'PROKSI: Mi instan tidak ada di TKPI 2017; dipakai mi kering | Karbohidrat tercetak 6,3 g tidak sesuai energi 339 kkal; dihitung dari selisih energi (Atwater 4/9/4) menjadi 70,9 g. Mohon verifikasi dengan buku TKPI asli'),
+  ('sawi', 'Sawi', 'sayur', 'per 100 g', 1875, 28, 2.3, 4, 0.3, 2.5, 'DR141', 'Sawi, segar', null),
+  ('minyak', 'Minyak goreng', 'lainnya', 'per 100 g', 0, 884, 0, 0, 100, 0, 'KR012', 'Minyak kelapa sawit', null)
+on conflict (kunci) do update set
+  nama = excluded.nama, kategori = excluded.kategori, satuan = excluded.satuan, harga_rata_rata = excluded.harga_rata_rata,
+  energi = excluded.energi, protein = excluded.protein, karbohidrat = excluded.karbohidrat, lemak = excluded.lemak, serat = excluded.serat,
+  kode_tkpi = excluded.kode_tkpi, nama_tkpi = excluded.nama_tkpi, catatan = excluded.catatan;
+
+insert into resep_bahan (resep_id, bahan_id, jumlah)
+select v.resep_id, b.id, v.jumlah
+from (values
+  ('oat-telur-pisang', 'oat', 30),
+  ('oat-telur-pisang', 'telur', 100),
+  ('oat-telur-pisang', 'pisang', 75),
+  ('nasi-telur-orak-arik', 'nasi', 150),
+  ('nasi-telur-orak-arik', 'telur', 100),
+  ('nasi-telur-orak-arik', 'wortel', 40),
+  ('nasi-telur-orak-arik', 'daun bawang', 10),
+  ('nasi-telur-orak-arik', 'bawang', 10),
+  ('nasi-telur-orak-arik', 'minyak', 10),
+  ('bubur-kacang-hijau', 'kacang hijau', 75),
+  ('bubur-kacang-hijau', 'gula', 15),
+  ('bubur-kacang-hijau', 'santan', 65),
+  ('roti-selai-pisang', 'roti', 75),
+  ('roti-selai-pisang', 'selai', 15),
+  ('roti-selai-pisang', 'pisang', 75),
+  ('liwet-tempe-sayur-bening', 'beras', 150),
+  ('liwet-tempe-sayur-bening', 'tempe', 100),
+  ('liwet-tempe-sayur-bening', 'bayam', 70),
+  ('liwet-tempe-sayur-bening', 'jagung', 75),
+  ('liwet-tempe-sayur-bening', 'bawang', 10),
+  ('nasi-goreng-kampung', 'nasi', 200),
+  ('nasi-goreng-kampung', 'telur', 50),
+  ('nasi-goreng-kampung', 'bawang', 15),
+  ('nasi-goreng-kampung', 'kol', 100),
+  ('nasi-goreng-kampung', 'cabai', 6),
+  ('nasi-goreng-kampung', 'kecap', 15),
+  ('nasi-goreng-kampung', 'minyak', 10),
+  ('tempe-orek-bayam', 'nasi', 200),
+  ('tempe-orek-bayam', 'tempe', 100),
+  ('tempe-orek-bayam', 'bayam', 70),
+  ('tempe-orek-bayam', 'bawang', 10),
+  ('tempe-orek-bayam', 'cabai', 4),
+  ('tempe-orek-bayam', 'kecap', 15),
+  ('tempe-orek-bayam', 'minyak', 10),
+  ('nasi-teri-kangkung', 'nasi', 200),
+  ('nasi-teri-kangkung', 'teri', 20),
+  ('nasi-teri-kangkung', 'kangkung', 100),
+  ('nasi-teri-kangkung', 'bawang', 10),
+  ('nasi-teri-kangkung', 'cabai', 6),
+  ('nasi-teri-kangkung', 'minyak', 10),
+  ('tumis-tahu-tauge', 'nasi', 150),
+  ('tumis-tahu-tauge', 'tahu', 100),
+  ('tumis-tahu-tauge', 'tauge', 50),
+  ('tumis-tahu-tauge', 'bawang', 10),
+  ('tumis-tahu-tauge', 'cabai', 6),
+  ('tumis-tahu-tauge', 'kecap', 15),
+  ('tumis-tahu-tauge', 'minyak', 10),
+  ('sup-ayam-jagung', 'ayam', 100),
+  ('sup-ayam-jagung', 'jagung', 75),
+  ('sup-ayam-jagung', 'wortel', 40),
+  ('sup-ayam-jagung', 'telur', 50),
+  ('sup-ayam-jagung', 'bawang', 10),
+  ('mi-rebus-sayur-telur', 'mi', 70),
+  ('mi-rebus-sayur-telur', 'sawi', 80),
+  ('mi-rebus-sayur-telur', 'telur', 50),
+  ('mi-rebus-sayur-telur', 'cabai', 6),
+  ('tumis-kangkung-telur', 'nasi', 200),
+  ('tumis-kangkung-telur', 'kangkung', 100),
+  ('tumis-kangkung-telur', 'telur', 50),
+  ('tumis-kangkung-telur', 'bawang', 10),
+  ('tumis-kangkung-telur', 'cabai', 6),
+  ('tumis-kangkung-telur', 'minyak', 10)
+) as v(resep_id, kunci, jumlah)
+join bahan b on b.kunci = v.kunci
+on conflict (resep_id, bahan_id) do update set jumlah = excluded.jumlah;
+

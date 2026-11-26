@@ -1,8 +1,10 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, Menu } from 'lucide-react';
-import { useApp } from './AppProvider';
+import { Menu } from "lucide-react";
+import { useApp } from "./AppProvider";
+import PencarianResep from "./PencarianResep";
+import NotifikasiBell from "./NotifikasiBell";
 
 const NAMA = {
   "/beranda": "Beranda",
@@ -53,14 +55,9 @@ export default function Header() {
         </Link>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          aria-label="Notifikasi"
-          className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100 hover:text-brand-dark transition-colors"
-        >
-          <Bell size={20} />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-600 ring-2 ring-white" />
-        </button>
+      <div className="flex items-center gap-2 sm:gap-3">
+        <PencarianResep />
+        <NotifikasiBell />
         <Link
           href="/profil"
           aria-label="Profil Saya"

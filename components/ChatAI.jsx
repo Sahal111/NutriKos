@@ -75,7 +75,9 @@ export default function ChatAI() {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
               </span>
             </div>
-            <span className="text-sm font-extrabold tracking-wide">Tanya AI</span>
+            <span className="text-sm font-extrabold tracking-wide">
+              Tanya AI
+            </span>
           </button>
         )}
       </div>
@@ -91,7 +93,9 @@ export default function ChatAI() {
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h3 className="font-extrabold text-sm leading-none">NutriKos AI</h3>
+                  <h3 className="font-extrabold text-sm leading-none">
+                    NutriKos AI
+                  </h3>
                   <span className="flex h-2 w-2 rounded-full bg-emerald-400"></span>
                 </div>
                 <div className="text-[11px] text-brand-mint font-medium mt-0.5">
@@ -127,22 +131,22 @@ export default function ChatAI() {
             {daftarPesan.map((m, idx) => (
               <div
                 key={idx}
-                className={`flex gap-2.5 ${m.pengirim === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex gap-2.5 ${m.pengirim === "user" ? "justify-end" : "justify-start"}`}
               >
-                {m.pengirim === 'ai' && (
+                {m.pengirim === "ai" && (
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-light text-brand-dark text-xs font-bold mt-1">
                     🤖
                   </div>
                 )}
                 <div
                   className={`max-w-[82%] rounded-2xl p-3 leading-relaxed ${
-                    m.pengirim === 'user'
-                      ? 'bg-brand-dark text-white rounded-tr-xs shadow-xs'
-                      : 'bg-white border border-slate-200/80 text-slate-800 rounded-tl-xs shadow-xs'
+                    m.pengirim === "user"
+                      ? "bg-brand-dark text-white rounded-tr-xs shadow-xs"
+                      : "bg-white border border-slate-200/80 text-slate-800 rounded-tl-xs shadow-xs"
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{m.teks}</p>
-                  {m.sumber === 'ai' && (
+                  {m.sumber === "ai" && (
                     <div className="mt-1 text-[9px] font-bold text-brand-dark uppercase tracking-wider">
                       ✓ Dijawab oleh Gemini AI
                     </div>
@@ -160,7 +164,9 @@ export default function ChatAI() {
                   <span className="h-1.5 w-1.5 rounded-full bg-brand-dark animate-bounce"></span>
                   <span className="h-1.5 w-1.5 rounded-full bg-brand-dark animate-bounce [animation-delay:0.2s]"></span>
                   <span className="h-1.5 w-1.5 rounded-full bg-brand-dark animate-bounce [animation-delay:0.4s]"></span>
-                  <span className="text-[11px] text-slate-500 ml-1">NutriKos AI sedang berpikir...</span>
+                  <span className="text-[11px] text-slate-500 ml-1">
+                    NutriKos AI sedang berpikir...
+                  </span>
                 </div>
               </div>
             )}
@@ -191,6 +197,10 @@ export default function ChatAI() {
                 <Send size={16} />
               </button>
             </form>
+            <p className="mt-2 text-center text-[11px] text-slate-400">
+              Jawaban AI berupa saran umum, bukan pengganti ahli gizi atau
+              dokter.
+            </p>
           </div>
         </div>
       )}

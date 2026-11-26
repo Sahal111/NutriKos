@@ -2,7 +2,13 @@
 import { useRouter } from 'next/navigation';
 import { Check, ArrowRight } from 'lucide-react';
 import { useApp } from '@/components/AppProvider';
-import { ALAT_OPTIONS, PANTANGAN_OPTIONS, JENIS_KELAMIN_OPTIONS, rupiah } from '@/lib/data';
+import {
+  ALAT_OPTIONS,
+  PANTANGAN_OPTIONS,
+  JENIS_KELAMIN_OPTIONS,
+  rupiah,
+} from "@/lib/data";
+import { biayaHarianTermurah } from "@/lib/recommend";
 
 const PILIHAN_CEPAT = [{ l: 'Hemat', v: 20000 }, { l: 'Standar', v: 30000 }, { l: 'Leluasa', v: 50000 }];
 
@@ -11,7 +17,9 @@ const toggle = (arr, v) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...a
 export default function ProfilKos() {
   const router = useRouter();
   const { profile, setProfile, generatePlan, ready } = useApp();
-  if (!ready) return null;
+    if (!ready) return null;
+
+    const termurah = biayaHarianTermurah(profile);
 
     const simpan = () => {
       generatePlan();
@@ -62,6 +70,16 @@ export default function ProfilKos() {
           <span>Rp 10.000</span>
           <span>Rp 100.000</span>
         </div>
+        {termurah !== null && profile.budget < termurah && (
+          <p
+            role="alert"
+            className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800"
+          >
+            Dengan alat dan pantanganmu, menu sehari termurah saat ini{" "}
+            {rupiah(termurah)}. Naikkan bujet ke minimal itu supaya rekomendasi
+            tidak melebihi bujet.
+          </p>
+        )}
         <div className="label">Pilihan cepat anak kos:</div>
         <div className="grid grid-cols-3 gap-2">
           {PILIHAN_CEPAT.map((p) => (

@@ -6,15 +6,22 @@ import { Save, LogOut, Home as HomeIcon, CircleCheck } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { logout } from "@/lib/auth";
 import { AVATARS, rupiah } from "@/lib/data";
+import {
+  UKURAN_HURUF,
+  bacaUkuranHuruf,
+  terapkanUkuranHuruf,
+} from "@/lib/ukuranHuruf";
 
 export default function ProfilSaya() {
   const router = useRouter();
   const { profile, setProfile, reset, ready } = useApp();
   const [form, setForm] = useState(null);
   const [toast, setToast] = useState(false);
+  const [ukuran, setUkuran] = useState("normal");
+  useEffect(() => setUkuran(bacaUkuranHuruf()), []);
 
   useEffect(() => {
-    if (ready && !form) setForm(profile);
+  if (ready && !form) setForm(profile);
   }, [ready, form, profile]);
   if (!ready || !form) return null;
 
@@ -23,7 +30,6 @@ export default function ProfilSaya() {
     if (!form.nama.trim()) return;
     setProfile({
       nama: form.nama.trim(),
-      email: form.email.trim(),
       kampus: form.kampus.trim(),
       prodi: form.prodi.trim(),
       semester: form.semester,
@@ -97,11 +103,14 @@ export default function ProfilSaya() {
             <input
               id="email"
               type="email"
-              className="input"
-              placeholder="nama@email.com"
+              className="input cursor-not-allowed bg-slate-100 text-slate-500"
               value={form.email}
-              onChange={(e) => ubah({ email: e.target.value })}
+              readOnly
+              aria-readonly="true"
             />
+            <p className="mt-1 text-xs text-slate-500">
+              Email mengikuti akunmu dan tidak bisa diubah di sini.
+            </p>
           </div>
           <div>
             <label className="label" htmlFor="kampus">
@@ -178,6 +187,33 @@ export default function ProfilSaya() {
         >
           Ubah Profil Kos
         </Link>
+      </section>
+
+      {/* Tampilan */}
+      <section className="card space-y-3">
+        <h2 className="text-lg font-extrabold">Tampilan</h2>
+        <div className="label">Ukuran huruf</div>
+        <div
+          className="grid grid-cols-3 gap-2"
+          role="radiogroup"
+          aria-label="Ukuran huruf"
+        >
+          {UKURAN_HURUF.map((u) => (
+            <button
+              key={u.kode}
+              type="button"
+              role="radio"
+              aria-checked={ukuran === u.kode}
+              onClick={() => setUkuran(terapkanUkuranHuruf(u.kode))}
+              className={`rounded-xl py-3 text-sm font-bold transition-colors ${ukuran === u.kode ? "bg-brand-dark text-white" : "bg-slate-100 hover:bg-slate-200"}`}
+            >
+              {u.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-slate-500">
+          Pengaturan ini tersimpan di perangkat ini.
+        </p>
       </section>
 
       {toast && (
