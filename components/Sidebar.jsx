@@ -15,6 +15,17 @@ const NAV = [
   { href: "/profil", label: "Profil Saya", icon: "person" },
 ];
 
+const ROW = 54; // tinggi baris h-12 (48px) + gap-1.5 (6px)
+const GAP = 6;
+const R = 32; // radius lekukan
+const LATAR = "#eef0f7"; // sama dengan bg-inverse-on-surface
+
+// Efek muncul bertahap (fade + geser dari kiri) untuk isi panel saat sidebar
+// dibuka. Delay per elemen lewat CSS variable --d; delay hanya dipakai saat
+// membuka, jadi saat menutup isi langsung memudar.
+const FADE =
+  "transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none lg:-translate-x-3 lg:opacity-0 lg:group-hover/side:translate-x-0 lg:group-hover/side:opacity-100 lg:group-hover/side:[transition-delay:var(--d)] lg:group-focus-within/side:translate-x-0 lg:group-focus-within/side:opacity-100 lg:group-focus-within/side:[transition-delay:var(--d)]";
+
 export default function Sidebar() {
   const path = usePathname();
   const router = useRouter();
@@ -25,6 +36,7 @@ export default function Sidebar() {
     (x) => !x.sudahAda && !checked[x.nama],
   ).length;
   const aktif = (h) => path === h || path.startsWith(h + "/");
+  const aktifIdx = NAV.findIndex((n) => aktif(n.href));
 
   const keluar = async () => {
     if (
@@ -41,7 +53,7 @@ export default function Sidebar() {
   const bar = (
     <div className="flex h-full w-[308px]">
       {/* Rail ikon */}
-      <div className="flex h-full w-[72px] shrink-0 select-none flex-col gap-1.5 rounded-l-[28px] bg-rail-blue pt-[104px]">
+      <div className="flex h-full w-[72px] shrink-0 select-none flex-col gap-1.5 rounded-l-[28px] bg-rail-blue pt-[104px] lg:rounded-[28px] lg:transition-[border-radius] lg:duration-300 lg:group-hover/side:rounded-r-none lg:group-focus-within/side:rounded-r-none">
         {NAV.map(({ href, label, icon }) => {
           const on = aktif(href);
           return (
@@ -66,8 +78,11 @@ export default function Sidebar() {
       </div>
 
       {/* Panel biru: logo terpisah + menu teks */}
-      <div className="flex h-full flex-1 flex-col">
-        <div className="flex h-20 shrink-0 items-center gap-3 rounded-br-[32px] bg-primary-container px-5">
+      <div className="flex h-full flex-1 flex-col rounded-br-[32px] bg-primary-container">
+        <div
+          className={`flex h-20 shrink-0 items-center gap-3 px-5 ${FADE}`}
+          style={{ "--d": "40ms" }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo.png"
@@ -83,9 +98,31 @@ export default function Sidebar() {
             </span>
           </div>
         </div>
-        <div className="flex flex-1 flex-col justify-between rounded-br-[32px] rounded-tr-[32px] bg-primary-container pb-6 pt-6">
-          <nav className="flex flex-col gap-1.5">
-            {NAV.map(({ href, label }) => {
+        <div className="flex flex-1 flex-col justify-between pb-6 pt-6">
+          <nav className="relative flex flex-col gap-1.5">
+            {aktifIdx >= 0 && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-0 ml-3 h-12 transition-transform duration-300 ease-in-out will-change-transform"
+                style={{ transform: `translateY(${aktifIdx * ROW}px)` }}
+              >
+                {/* Pil terang: ikut bergeser bersama lekukannya */}
+                <div className="absolute inset-0 rounded-l-full bg-inverse-on-surface" />
+                <div
+                  className="absolute -top-8 right-0 h-8 w-8"
+                  style={{
+                    background: `radial-gradient(circle at 0 0, transparent ${R}px, ${LATAR} ${R}px)`,
+                  }}
+                />
+                <div
+                  className="absolute -bottom-8 right-0 h-8 w-8"
+                  style={{
+                    background: `radial-gradient(circle at 0 100%, transparent ${R}px, ${LATAR} ${R}px)`,
+                  }}
+                />
+              </div>
+            )}
+            {NAV.map(({ href, label }, i) => {
               const on = aktif(href);
               return (
                 <Link
@@ -93,34 +130,44 @@ export default function Sidebar() {
                   href={href}
                   onClick={closeSidebar}
                   aria-current={on ? "page" : undefined}
-                  className={`ml-3 flex h-12 items-center rounded-l-full pl-5 transition-all ${
+                  className={`relative z-10 ml-3 flex h-12 items-center rounded-l-full pl-5 font-menu-item text-menu-item transition-colors duration-300 ${
                     on
-                      ? "bg-inverse-on-surface font-h4 text-h4 text-primary-container shadow-sm"
-                      : "font-menu-item text-menu-item text-white/85 hover:text-white"
+                      ? "font-bold text-primary-container"
+                      : "text-white/85 hover:text-white"
                   }`}
                 >
-                  <span className="truncate">{label}</span>
-                  {href === "/belanja" && perluDibeli > 0 && (
-                    <span
-                      className={`ml-auto mr-4 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${on ? "bg-primary-container text-white" : "bg-warning text-white"}`}
-                    >
-                      {perluDibeli}
-                    </span>
-                  )}
+                  <span
+                    className={`flex min-w-0 flex-1 items-center ${FADE}`}
+                    style={{ "--d": `${80 + i * 30}ms` }}
+                  >
+                    <span className="truncate">{label}</span>
+                    {href === "/belanja" && perluDibeli > 0 && (
+                      <span
+                        className={`ml-auto mr-4 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${on ? "bg-primary-container text-white" : "bg-warning text-white"}`}
+                      >
+                        {perluDibeli}
+                      </span>
+                    )}
+                  </span>
                 </Link>
               );
             })}
           </nav>
-          <button
-            type="button"
-            onClick={keluar}
-            className="mx-5 flex items-center justify-center gap-2 rounded-xl py-3 font-menu-item text-menu-item text-white/85 transition-all hover:bg-white/10 hover:text-white"
+          <div
+            className={`mx-5 ${FADE}`}
+            style={{ "--d": `${80 + NAV.length * 30}ms` }}
           >
-            <span className="material-symbols-outlined text-[20px]">
-              logout
-            </span>
-            Log Out
-          </button>
+            <button
+              type="button"
+              onClick={keluar}
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 font-menu-item text-menu-item text-white/85 transition-all hover:bg-white/10 hover:text-white"
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                logout
+              </span>
+              Log Out
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -128,9 +175,14 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="fixed left-0 top-0 z-50 hidden h-screen lg:block">
+      <aside className="group/side fixed left-0 top-0 z-50 hidden h-screen w-[72px] overflow-hidden transition-[width] delay-150 duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] focus-within:w-[308px] hover:w-[308px] hover:delay-75 motion-reduce:transition-none lg:block">
         {bar}
       </aside>
+      {/* Redupkan konten di belakang saat sidebar terbuka
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-40 hidden bg-text-primary/15 opacity-0 transition-opacity duration-300 peer-hover/side:opacity-100 peer-hover/side:delay-75 peer-focus-within/side:opacity-100 motion-reduce:transition-none lg:block"
+      /> */}
       {isSidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
