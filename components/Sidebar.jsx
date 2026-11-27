@@ -1,129 +1,145 @@
-'use client';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, UtensilsCrossed, ShoppingBag, HeartPulse, User, Settings, Refrigerator, X } from 'lucide-react';
-import { useApp } from './AppProvider';
+"use client";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useApp } from "./AppProvider";
+import { logout } from "@/lib/auth";
 
-const NAV_ITEMS = [
-  { href: "/beranda", label: "Beranda", Icon: Home },
-  { href: "/menu", label: "Rekomendasi Menu", Icon: UtensilsCrossed },
-  { href: "/bahan-sisa", label: "Cek Bahan Sisa", Icon: Refrigerator },
-  { href: "/belanja", label: "Daftar Belanja", Icon: ShoppingBag },
-  { href: "/gizi", label: "Gizi Mingguan", Icon: HeartPulse },
-  { href: "/profil-kos", label: "Profil Kos", Icon: Settings },
-  { href: "/profil", label: "Profil Saya", Icon: User },
+// Satu daftar untuk dua kolom: ikon di rail kiri dan teks di panel biru. Tinggi barisnya sama (h-12) supaya sejajar.
+const NAV = [
+  { href: "/beranda", label: "Dashboard", icon: "space_dashboard" },
+  { href: "/menu", label: "Rekomendasi Menu", icon: "restaurant_menu" },
+  { href: "/bahan-sisa", label: "Cek Bahan Sisa", icon: "kitchen" },
+  { href: "/belanja", label: "Daftar Belanja", icon: "shopping_cart" },
+  { href: "/gizi", label: "Gizi Mingguan", icon: "pie_chart" },
+  { href: "/profil-kos", label: "Profil Kos", icon: "settings" },
+  { href: "/profil", label: "Profil Saya", icon: "person" },
 ];
 
 export default function Sidebar() {
   const path = usePathname();
-  const { profile, getShoppingItems, checked, isSidebarOpen, closeSidebar } = useApp();
+  const router = useRouter();
+  const { getShoppingItems, checked, isSidebarOpen, closeSidebar, reset } =
+    useApp();
+  const items = getShoppingItems ? getShoppingItems() : [];
+  const perluDibeli = items.filter(
+    (x) => !x.sudahAda && !checked[x.nama],
+  ).length;
+  const aktif = (h) => path === h || path.startsWith(h + "/");
 
-  const shoppingItems = getShoppingItems ? getShoppingItems() : [];
-  const perluDibeli = shoppingItems.filter((x) => !x.sudahAda && !checked[x.nama]).length;
-  const aktif = (h) => (h === '/' ? path === '/' : path === h || path.startsWith(h + '/'));
+  const keluar = async () => {
+    if (
+      confirm(
+        "Keluar dari akun? Profil, favorit, riwayat, dan catatan gizi tetap tersimpan di akunmu. Rencana menu dan daftar belanja di perangkat ini akan dihapus.",
+      )
+    ) {
+      await logout();
+      reset();
+      router.push("/");
+    }
+  };
 
-  const navContent = (
-    <>
-      {/* Profile summary */}
-      <div className="mb-4 px-4 pt-3">
-        <div className="flex items-center gap-3 rounded-2xl bg-brand-light/70 p-3 border border-brand-mint/40">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-mint text-2xl shadow-xs">
-            {profile?.avatar || '👩‍🎓'}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-bold text-brand-deeper">{profile?.nama}</div>
-            <div className="truncate text-xs text-slate-500">{profile?.kampus}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation Links */}
-      <nav className="flex-1 space-y-1 px-3">
-        {NAV_ITEMS.map(({ href, label, Icon }) => {
-          const isActive = aktif(href);
+  const bar = (
+    <div className="flex h-full w-[308px]">
+      {/* Rail ikon */}
+      <div className="flex h-full w-[72px] shrink-0 select-none flex-col gap-1.5 rounded-l-[28px] bg-rail-blue pt-[104px]">
+        {NAV.map(({ href, label, icon }) => {
+          const on = aktif(href);
           return (
             <Link
               key={href}
               href={href}
+              title={label}
+              tabIndex={-1}
+              aria-hidden="true"
               onClick={closeSidebar}
-              className={`relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
-                isActive
-                  ? 'bg-brand-dark text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
+              className={`relative flex h-12 items-center justify-center transition-colors ${on ? "text-white" : "text-white/75 hover:text-white"}`}
             >
-              <Icon size={19} className={isActive ? 'text-white' : 'text-slate-500'} />
-              <span>{label}</span>
-              {href === '/belanja' && perluDibeli > 0 && (
-                <span
-                  className={`ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${
-                    isActive ? 'bg-white text-brand-dark' : 'bg-accent text-white'
-                  }`}
-                >
-                  {perluDibeli}
-                </span>
+              {on && (
+                <span className="absolute left-0 h-7 w-1 rounded-r-full bg-white" />
               )}
+              <span className="material-symbols-outlined ms-fill text-[24px]">
+                {icon}
+              </span>
             </Link>
           );
         })}
-      </nav>
-
-      {/* Footer info */}
-      <div className="border-t border-slate-200/80 p-4">
-        <div className="text-center text-xs font-semibold text-slate-500">NutriKos v2.0</div>
-        <div className="text-center text-[10px] text-slate-400">Pola Makan Sehat & Hemat Mahasiswa</div>
       </div>
-    </>
+
+      {/* Panel biru: logo terpisah + menu teks */}
+      <div className="flex h-full flex-1 flex-col">
+        <div className="flex h-20 shrink-0 items-center gap-3 rounded-br-[32px] bg-primary-container px-5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Logo NutriKos"
+            className="h-8 w-auto object-contain"
+          />
+          <div className="flex flex-col">
+            <span className="font-h4 text-xl leading-none tracking-tight text-white">
+              NutriKos
+            </span>
+            <span className="mt-1 font-micro text-micro uppercase tracking-widest text-white/70">
+              Nutrisi &amp; Hemat
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-1 flex-col justify-between rounded-br-[32px] rounded-tr-[32px] bg-primary-container pb-6 pt-6">
+          <nav className="flex flex-col gap-1.5">
+            {NAV.map(({ href, label }) => {
+              const on = aktif(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={closeSidebar}
+                  aria-current={on ? "page" : undefined}
+                  className={`ml-3 flex h-12 items-center rounded-l-full pl-5 transition-all ${
+                    on
+                      ? "bg-inverse-on-surface font-h4 text-h4 text-primary-container shadow-sm"
+                      : "font-menu-item text-menu-item text-white/85 hover:text-white"
+                  }`}
+                >
+                  <span className="truncate">{label}</span>
+                  {href === "/belanja" && perluDibeli > 0 && (
+                    <span
+                      className={`ml-auto mr-4 flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold ${on ? "bg-primary-container text-white" : "bg-warning text-white"}`}
+                    >
+                      {perluDibeli}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+          <button
+            type="button"
+            onClick={keluar}
+            className="mx-5 flex items-center justify-center gap-2 rounded-xl py-3 font-menu-item text-menu-item text-white/85 transition-all hover:bg-white/10 hover:text-white"
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              logout
+            </span>
+            Log Out
+          </button>
+        </div>
+      </div>
+    </div>
   );
 
   return (
     <>
-      {/* Desktop Sidebar: Normal non-overlapping Flex Column */}
-      <aside className="hidden lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-r lg:border-slate-200/80 lg:bg-white lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:overflow-y-auto">
-        {navContent}
+      <aside className="fixed left-0 top-0 z-50 hidden h-screen lg:block">
+        {bar}
       </aside>
-
-      {/* Mobile Drawer (Drawer hamburger) */}
       {isSidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-text-primary/50"
             onClick={closeSidebar}
             aria-hidden="true"
           />
-
-          {/* Drawer content */}
-          <aside className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-white shadow-2xl animate-in slide-in-from-left duration-200">
-            {/* Header Drawer with Close Button */}
-            <div className="flex h-16 items-center justify-between border-b border-slate-200 px-4">
-              <Link
-                href="/beranda"
-                onClick={closeSidebar}
-                className="flex items-center gap-2"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/logo.png"
-                  alt="Logo NutriKos"
-                  className="h-8 w-8 object-contain"
-                />
-                <span className="text-lg font-extrabold">
-                  <span className="text-brand-dark">Nutri</span>
-                  <span className="text-accent">Kos</span>
-                </span>
-              </Link>
-              <button
-                onClick={closeSidebar}
-                aria-label="Tutup menu"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Nav content */}
-            <div className="flex-1 overflow-y-auto">{navContent}</div>
+          <aside className="fixed inset-y-0 left-0 z-50 shadow-2xl">
+            {bar}
           </aside>
         </div>
       )}

@@ -3,20 +3,41 @@
 @tailwind utilities;
 
 html { -webkit-tap-highlight-color: transparent; }
-body { @apply bg-slate-200 text-slate-900 font-sans; }
+body { @apply bg-inverse-on-surface text-on-surface font-sans; margin: 0; overscroll-behavior: none; }
 
 @layer components {
-  .card { @apply bg-white rounded-2xl shadow-sm p-4; }
-  .chip { @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold bg-slate-100 text-slate-700 select-none; }
-  .chip-on { @apply bg-brand-dark text-white; }
+  .card { @apply bg-surface rounded-[20px] border border-border-subtle/50 shadow-sm p-5; }
+  .chip { @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold bg-surface-alt text-text-secondary select-none; }
+  .chip-on { @apply bg-rail-blue text-white; }
   .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-bold text-sm transition active:scale-[0.98]; }
-  .btn-primary { @apply bg-brand-dark text-white hover:bg-brand-deeper; }
-  .btn-soft { @apply bg-slate-100 text-slate-800 hover:bg-slate-200; }
-  .input { @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30; }
-  .label { @apply mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500; }
+  .btn-primary { @apply bg-rail-blue text-white shadow-[0_4px_14px_rgba(91,116,214,0.35)] hover:bg-primary-container; }
+  .btn-soft { @apply bg-surface-soft text-secondary border border-border-subtle/70 hover:bg-pill-active-bg; }
+  .input { @apply w-full rounded-xl border border-border-subtle bg-surface px-3 py-3 text-sm text-text-primary outline-none placeholder:text-text-disabled focus:border-rail-blue focus:ring-2 focus:ring-rail-blue/30; }
+  .label { @apply mb-1 block text-xs font-bold uppercase tracking-wide text-text-secondary; }
+  .judul-seksi { @apply flex items-center gap-2 font-h4 text-h4 text-text-primary tracking-tight; }
+  .judul-seksi::before { content: ''; @apply block h-5 w-2 rounded-full bg-rail-blue; }
+}
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  user-select: none;
 }
 
-/* Smooth scrollbar for horizontal scrollable areas */
+.ms-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
 @layer utilities {
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

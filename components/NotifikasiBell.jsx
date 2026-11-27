@@ -1,7 +1,6 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Bell } from 'lucide-react';
 import { useApp } from './AppProvider';
 import { nutrisiDari } from '@/lib/recommend';
 import { kunciTanggal } from '@/lib/gizi';
@@ -42,31 +41,27 @@ export default function NotifikasiBell() {
         aria-expanded={buka}
         aria-haspopup="true"
         onClick={() => setBuka((v) => !v)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 hover:text-brand-dark"
+        className="relative flex h-10 w-10 items-center justify-center rounded-full bg-surface text-text-secondary shadow-sm transition-all hover:bg-surface-soft hover:text-text-primary"
       >
-        <Bell size={20} />
-        {daftar.length > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white ring-2 ring-white">
-            {daftar.length}
-          </span>
-        )}
+        <span className="material-symbols-outlined text-[20px]">notifications</span>
+        {daftar.length > 0 && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger ring-2 ring-surface" />}
       </button>
 
       {buka && (
         <div
           role="region"
           aria-label="Daftar pengingat"
-          className="absolute right-0 top-12 z-50 w-72 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2 shadow-lg"
+          className="absolute right-0 top-12 z-50 w-72 max-w-[calc(100vw-2rem)] rounded-2xl border border-border-subtle bg-white p-2 shadow-lg"
         >
           {daftar.length === 0 ? (
-            <p className="px-3 py-4 text-center text-sm text-slate-500">Semua beres, tidak ada pengingat.</p>
+            <p className="px-3 py-4 text-center text-sm text-text-secondary">Semua beres, tidak ada pengingat.</p>
           ) : (
             <ul className="space-y-1">
               {daftar.map((n) => (
                 <li key={n.id}>
-                  <Link href={n.href} onClick={() => setBuka(false)} className="block rounded-xl px-3 py-2 hover:bg-slate-50">
-                    <div className="text-sm font-bold text-slate-900">{n.judul}</div>
-                    <div className="text-xs text-slate-600">{n.isi}</div>
+                  <Link href={n.href} onClick={() => setBuka(false)} className="block rounded-xl px-3 py-2 hover:bg-surface-soft">
+                    <div className="text-sm font-bold text-text-primary">{n.judul}</div>
+                    <div className="text-xs text-text-secondary">{n.isi}</div>
                   </Link>
                 </li>
               ))}

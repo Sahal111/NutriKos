@@ -35,16 +35,14 @@ export default function Shell({ children }) {
   if (!masuk) return null; // tunggu cek sesi, cegah kilatan konten
 
   return (
-    <div className="min-h-screen w-full bg-surface flex flex-col">
-      <Header />
-      {/* Desktop layout: Sidebar in normal flex flow, main content takes all remaining width */}
-      <div className="flex flex-1 w-full">
-        <Sidebar />
-        <main className="flex-1 min-w-0 w-full px-4 py-6 sm:px-6 md:px-8 lg:px-8 xl:px-10 pb-28 lg:pb-12">
+    <div className="min-h-screen w-full bg-inverse-on-surface">
+      <Sidebar />
+      <div className="flex min-h-screen flex-col lg:pl-[308px]">
+        <Header />
+        <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 pb-28 pt-[88px] sm:px-6 lg:px-10 lg:pb-12">
           {children}
         </main>
       </div>
-      {/* Asisten AI Interaktif NutriKos */}
       <ChatAI />
       <BottomNav />
     </div>

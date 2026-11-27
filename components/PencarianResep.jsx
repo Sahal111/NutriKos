@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search } from 'lucide-react';
 import { cariResep } from '@/lib/cari';
 import { rupiah } from '@/lib/data';
 
@@ -44,18 +43,18 @@ export default function PencarianResep() {
         aria-label="Cari resep"
         aria-expanded={panel}
         onClick={() => setPanel((v) => !v)}
-        className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 hover:text-brand-dark md:hidden"
+        className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-text-secondary shadow-sm transition-colors hover:text-text-primary md:hidden"
       >
-        <Search size={20} />
+        <span className="material-symbols-outlined text-[20px]">search</span>
       </button>
 
       <form
         role="search"
         onSubmit={(e) => { e.preventDefault(); if (hasil[0]) pilih(hasil[0].id); }}
-        className={`${panel ? 'absolute right-0 top-12 z-50 w-[calc(100vw-2rem)] max-w-xs rounded-2xl border border-slate-200 bg-white p-2 shadow-lg' : 'hidden'} md:relative md:top-0 md:block md:w-56 md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none lg:w-72`}
+        className={`${panel ? 'absolute right-0 top-12 z-50 w-[calc(100vw-2rem)] max-w-xs rounded-2xl border border-border-subtle bg-white p-2 shadow-lg' : 'hidden'} md:relative md:top-0 md:block md:w-[320px] md:rounded-none md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
       >
         <div className="relative">
-          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <span className="material-symbols-outlined pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[18px] text-text-disabled">search</span>
           <input
             type="search"
             value={q}
@@ -63,14 +62,14 @@ export default function PencarianResep() {
             onFocus={() => setFokus(true)}
             placeholder="Cari resep atau bahan..."
             aria-label="Cari resep atau bahan"
-            className="input !py-2 !pl-9 !text-sm bg-slate-50 focus:bg-white"
+            className="h-11 w-full rounded-[20px] bg-surface pl-10 pr-4 font-body-default text-body-default text-text-primary shadow-sm placeholder:text-text-disabled focus:outline-none focus:ring-2 focus:ring-rail-blue/40"
           />
         </div>
 
         {tampil && (
-          <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+          <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border-subtle bg-white shadow-lg">
             {hasil.length === 0 ? (
-              <p className="px-3 py-4 text-center text-sm text-slate-500">Tidak ada resep yang cocok.</p>
+              <p className="px-3 py-4 text-center text-sm text-text-secondary">Tidak ada resep yang cocok.</p>
             ) : (
               <ul role="listbox" aria-label="Hasil pencarian resep">
                 {hasil.map((r) => (
@@ -78,12 +77,12 @@ export default function PencarianResep() {
                     <button
                       type="button"
                       onClick={() => pilih(r.id)}
-                      className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-slate-50"
+                      className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-surface-soft"
                     >
                       <span className="text-xl" aria-hidden="true">{r.emoji}</span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-bold text-slate-900">{r.nama}</span>
-                        <span className="block text-xs text-slate-500">{SLOT[r.slot]} • {rupiah(r.harga)}</span>
+                        <span className="block truncate text-sm font-bold text-text-primary">{r.nama}</span>
+                        <span className="block text-xs text-text-secondary">{SLOT[r.slot]} • {rupiah(r.harga)}</span>
                       </span>
                     </button>
                   </li>
