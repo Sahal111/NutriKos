@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "./AppProvider";
@@ -19,14 +20,16 @@ const ROW = 54; // tinggi baris h-12 (48px) + gap-1.5 (6px)
 const GAP = 6;
 const R = 32; // radius lekukan
 const LATAR = "#eef0f7"; // sama dengan bg-inverse-on-surface
+const W_RAIL = 72; // lebar rail ikon (tertutup)
+const W_BUKA = 308; // lebar saat terbuka (rail + panel)
 
 // Efek muncul bertahap (fade + geser dari kiri) untuk isi panel saat sidebar
 // dibuka. Delay per elemen lewat CSS variable --d; delay hanya dipakai saat
 // membuka, jadi saat menutup isi langsung memudar.
 const FADE =
-  "transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none lg:-translate-x-3 lg:opacity-0 lg:group-hover/side:translate-x-0 lg:group-hover/side:opacity-100 lg:group-hover/side:[transition-delay:var(--d)] lg:group-focus-within/side:translate-x-0 lg:group-focus-within/side:opacity-100 lg:group-focus-within/side:[transition-delay:var(--d)]";
+  "transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none lg:-translate-x-3 lg:opacity-0 lg:group-data-[open=true]/side:translate-x-0 lg:group-data-[open=true]/side:opacity-100 lg:group-data-[open=true]/side:[transition-delay:var(--d)]";
 
-export default function Sidebar() {
+export default function Sidebar({ open = false, onOpenChange }) {
   const path = usePathname();
   const router = useRouter();
   const { getShoppingItems, checked, isSidebarOpen, closeSidebar, reset } =
@@ -35,6 +38,48 @@ export default function Sidebar() {
   const perluDibeli = items.filter(
     (x) => !x.sudahAda && !checked[x.nama],
   ).length;
+  // Buka/tutup berdasarkan POSISI kursor (bukan :hover CSS), supaya perilakunya
+  // sama di semua browser. Terbuka hanya saat kursor di atas rail (x <= 72px);
+  // setelah terbuka tetap terbuka selama kursor masih di dalam panel (x <= 308px).
+  const kursor = useRef(false);
+  const fokus = useRef(false);
+  const terakhir = useRef(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px) and (hover: hover)");
+    const terapkan = () => {
+      const v = kursor.current || fokus.current;
+      if (v !== terakhir.current) {
+        terakhir.current = v;
+        onOpenChange?.(v);
+      }
+    };
+    const gerak = (e) => {
+      if (!mq.matches) return;
+      kursor.current = e.clientX <= (terakhir.current ? W_BUKA : W_RAIL);
+      terapkan();
+    };
+    const keluar = () => {
+      kursor.current = false;
+      terapkan();
+    };
+    window.addEventListener("pointermove", gerak, { passive: true });
+    document.documentElement.addEventListener("mouseleave", keluar);
+    window.addEventListener("blur", keluar);
+    return () => {
+      window.removeEventListener("pointermove", gerak);
+      document.documentElement.removeEventListener("mouseleave", keluar);
+      window.removeEventListener("blur", keluar);
+    };
+  }, [onOpenChange]);
+  const setFokus = (v) => {
+    fokus.current = v;
+    const nilai = kursor.current || v;
+    if (nilai !== terakhir.current) {
+      terakhir.current = nilai;
+      onOpenChange?.(nilai);
+    }
+  };
+
   const aktif = (h) => path === h || path.startsWith(h + "/");
   const aktifIdx = NAV.findIndex((n) => aktif(n.href));
 
@@ -53,7 +98,7 @@ export default function Sidebar() {
   const bar = (
     <div className="flex h-full w-[308px]">
       {/* Rail ikon */}
-      <div className="flex h-full w-[72px] shrink-0 select-none flex-col gap-1.5 rounded-l-[28px] bg-rail-blue pt-[104px] lg:rounded-[28px] lg:transition-[border-radius] lg:duration-300 lg:group-hover/side:rounded-r-none lg:group-focus-within/side:rounded-r-none">
+      <div className="flex h-full w-[72px] shrink-0 select-none flex-col gap-1.5 rounded-l-[28px] bg-rail-blue pt-[104px] lg:rounded-[28px] lg:transition-[border-radius] lg:duration-300 lg:group-data-[open=true]/side:rounded-r-none">
         {NAV.map(({ href, label, icon }) => {
           const on = aktif(href);
           return (
@@ -77,7 +122,8 @@ export default function Sidebar() {
         })}
       </div>
 
-      {/* Panel biru: logo terpisah + menu teks */}
+      {/* Panel biru: satu bidang utuh (logo + menu). Lekukan di sisi kanan
+          mengikuti menu yang aktif. */}
       <div className="flex h-full flex-1 flex-col rounded-br-[32px] bg-primary-container">
         <div
           className={`flex h-20 shrink-0 items-center gap-3 px-5 ${FADE}`}
@@ -100,6 +146,8 @@ export default function Sidebar() {
         </div>
         <div className="flex flex-1 flex-col justify-between pb-6 pt-6">
           <nav className="relative flex flex-col gap-1.5">
+            {/* Sudut melengkung di atas & bawah menu aktif (warna latar halaman,
+                lingkaran transparan memperlihatkan biru panel di bawahnya). */}
             {aktifIdx >= 0 && (
               <div
                 aria-hidden="true"
@@ -175,14 +223,18 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="group/side fixed left-0 top-0 z-50 hidden h-screen w-[72px] overflow-hidden transition-[width] delay-150 duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] focus-within:w-[308px] hover:w-[308px] hover:delay-75 motion-reduce:transition-none lg:block">
+      <aside
+        data-open={!!open}
+        onFocus={(e) => {
+          if (e.target.matches(":focus-visible")) setFokus(true);
+        }}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget)) setFokus(false);
+        }}
+        className="group/side fixed left-0 top-0 z-50 hidden h-screen w-[72px] overflow-hidden transition-[width] duration-[380ms] ease-[cubic-bezier(0.22,1,0.36,1)] [transition-delay:var(--sb-delay)] data-[open=true]:w-[308px] motion-reduce:transition-none lg:block"
+      >
         {bar}
       </aside>
-      {/* Redupkan konten di belakang saat sidebar terbuka
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-40 hidden bg-text-primary/15 opacity-0 transition-opacity duration-300 peer-hover/side:opacity-100 peer-hover/side:delay-75 peer-focus-within/side:opacity-100 motion-reduce:transition-none lg:block"
-      /> */}
       {isSidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div

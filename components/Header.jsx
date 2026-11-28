@@ -1,5 +1,5 @@
-'use client';
-import Link from 'next/link';
+"use client";
+import Link from "next/link";
 import { useApp } from "./AppProvider";
 import PencarianResep from "./PencarianResep";
 import NotifikasiBell from "./NotifikasiBell";
@@ -7,7 +7,7 @@ import NotifikasiBell from "./NotifikasiBell";
 export default function Header() {
   const { profile, toggleSidebar } = useApp();
   return (
-    <header className="fixed left-0 right-0 top-0 z-30 flex h-16 items-center justify-between bg-inverse-on-surface/90 px-4 shadow-[0_1px_8px_rgba(27,33,80,0.04)] backdrop-blur-md sm:px-6 lg:left-[var(--sb)] lg:px-10 lg:transition-[left] lg:duration-[380ms] lg:ease-[cubic-bezier(0.22,1,0.36,1)] lg:[transition-delay:var(--sb-delay)] motion-reduce:transition-none">
+    <header className="fixed left-0 right-0 top-0 z-30 flex h-16 items-center justify-between bg-inverse-on-surface/90 px-4 shadow-[0_1px_8px_rgba(27,33,80,0.04)] backdrop-blur-md sm:px-6 lg:pl-[calc(var(--sb)+2.5rem)] lg:pr-10 lg:transition-[padding-left] lg:duration-[380ms] lg:ease-[cubic-bezier(0.22,1,0.36,1)] lg:[transition-delay:var(--sb-delay)] motion-reduce:transition-none">
       <div className="flex items-center gap-3">
         <button
           onClick={toggleSidebar}

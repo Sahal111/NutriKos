@@ -14,6 +14,7 @@ export default function Shell({ children }) {
   const path = usePathname();
   const router = useRouter();
   const [masuk, setMasuk] = useState(false);
+  const [sbOpen, setSbOpen] = useState(false); // sidebar desktop sedang terbuka (hover/fokus keyboard)
   const publik = PUBLIK.includes(path);
 
   useEffect(() => {
@@ -35,8 +36,11 @@ export default function Shell({ children }) {
   if (!masuk) return null; // tunggu cek sesi, cegah kilatan konten
 
   return (
-    <div className="min-h-screen w-full bg-inverse-on-surface [--sb-delay:150ms] [--sb:72px] has-[aside:focus-within]:[--sb-delay:75ms] has-[aside:focus-within]:[--sb:308px] has-[aside:hover]:[--sb-delay:75ms] has-[aside:hover]:[--sb:308px]">
-      <Sidebar />
+    <div
+      data-open={sbOpen}
+      className="min-h-screen w-full bg-inverse-on-surface [--sb-delay:150ms] [--sb:72px] data-[open=true]:[--sb-delay:75ms] data-[open=true]:[--sb:308px]"
+    >
+      <Sidebar open={sbOpen} onOpenChange={setSbOpen} />
       <div className="flex min-h-screen flex-col lg:pl-[var(--sb)] lg:transition-[padding-left] lg:duration-[380ms] lg:ease-[cubic-bezier(0.22,1,0.36,1)] lg:[transition-delay:var(--sb-delay)] motion-reduce:transition-none">
         <Header />
         <main className="mx-auto w-full max-w-[2200px] flex-1 px-4 pb-28 pt-[88px] sm:px-6 lg:px-10 lg:pb-12">
