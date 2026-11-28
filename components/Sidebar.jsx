@@ -9,6 +9,7 @@ import { logout } from "@/lib/auth";
 const NAV = [
   { href: "/beranda", label: "Dashboard", icon: "space_dashboard" },
   { href: "/menu", label: "Rekomendasi Menu", icon: "restaurant_menu" },
+  { href: "/planner", label: "Meal Planner", icon: "calendar_month" },
   { href: "/bahan-sisa", label: "Cek Bahan Sisa", icon: "kitchen" },
   { href: "/belanja", label: "Daftar Belanja", icon: "shopping_cart" },
   { href: "/gizi", label: "Gizi Mingguan", icon: "pie_chart" },

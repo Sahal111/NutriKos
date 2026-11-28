@@ -5,7 +5,7 @@ import { adaDiStok } from "@/lib/recommend";
 import { useApp } from "./AppProvider";
 
 // Label kategori singkat dari data resep (maks. 2), mis. "Hemat & Tinggi Protein".
-function kategori(r) {
+export function kategori(r) {
   const label = [];
   if (r.harga < 10000) label.push("Hemat");
   if (r.protein >= 18) label.push("Tinggi Protein");

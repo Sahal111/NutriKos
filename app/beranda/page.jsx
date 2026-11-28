@@ -674,7 +674,7 @@ export default function Beranda() {
       </div>
 
       {/* ============ KOLOM 3 ============ */}
-      <div className="flex w-full flex-col gap-6 xl:w-[340px]">
+      <div className="flex w-full min-w-0 flex-col gap-6 xl:w-[340px] xl:shrink-0">
         {/* Today's Meal Plan */}
         <div className="flex flex-col rounded-[20px] border border-border-subtle/50 bg-surface p-6 shadow-sm transition-shadow hover:shadow-md">
           <div className="mb-4 flex items-start justify-between border-b border-border-subtle/40 pb-2">
@@ -714,7 +714,7 @@ export default function Beranda() {
                   >
                     {hhmm(x.h, x.m)}
                   </span>
-                  <div className="flex flex-1 flex-col gap-2">
+                  <div className="flex min-w-0 flex-1 flex-col gap-2">
                     {x.daftar.length === 0 && (
                       <div className="rounded-[16px] border border-dashed border-border-subtle bg-surface-soft p-3.5 text-[12px] text-text-secondary">
                         Belum ada menu {SLOT_LABEL[x.s].toLowerCase()}
@@ -726,7 +726,7 @@ export default function Beranda() {
                         <Link
                           key={r.id}
                           href={`/menu/${r.id}`}
-                          className={`rounded-[16px] p-3.5 transition-all ${x.selesai ? "bg-rail-blue text-white shadow-sm hover:-translate-y-0.5" : "border border-border-subtle/60 bg-surface-soft hover:bg-pill-active-bg/40"}`}
+                          className={`block min-w-0 rounded-[16px] p-3.5 transition-all ${x.selesai ? "bg-rail-blue text-white shadow-sm hover:-translate-y-0.5" : "border border-border-subtle/60 bg-surface-soft hover:bg-pill-active-bg/40"}`}
                         >
                           <div className="flex items-center gap-2.5">
                             <div
